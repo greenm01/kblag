@@ -1,20 +1,20 @@
 include stats/[mono, bigram, tri, quad, skip, meta]
 
-proc initializeStats() =
+proc initializeStats(map: var FingerMap) =
   info("Initializing monogram stats")
-  initializeMonoStats()
+  initializeMonoStats(map)
 
   info("Initializing bigram stats")
-  initializeBigramStats()
+  initializeBigramStats(map)
 
   info("Initializing trigram stats")
-  initializeTrigramStats()
+  initializeTrigramStats(map)
 
   info("Initializing quadgram stats")
-  initializeQuadgramStats()
+  initializeQuadgramStats(map)
 
   info("Initializing skipgram stats")
-  initializeSkipgramStats()
+  initializeSkipgramStats(map)
 
   info("Initializing meta stats")
   initializeMetaStats()

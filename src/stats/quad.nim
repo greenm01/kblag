@@ -1,7 +1,7 @@
 type
-  QuadOperation = proc(row0, col0, row1, col1, row2, col2, row3, col3: int): int
+  QuadOperation = proc(map: FingerMap, row0, col0, row1, col1, row2, col2, row3, col3: int): bool {.closure.}
 
-proc processQuadgram(stat: string, op: QuadOperation) =
+proc processQuadgram(map: FingerMap, stat: string, op: QuadOperation) =
   var quadStat = QuadStat(
     ngrams: newSeq[int](),
     weight: -Inf
@@ -9,15 +9,15 @@ proc processQuadgram(stat: string, op: QuadOperation) =
   for i in 0..<Dim4:
     var row0, col0, row1, col1, row2, col2, row3, col3: int
     unflatQuad(i, row0, col0, row1, col1, row2, col2, row3, col3)
-    if op(row0, col0, row1, col1, row2, col2, row3, col3) == 1:
+    if op(map, row0, col0, row1, col1, row2, col2, row3, col3):
       quadStat.ngrams.add(i)
-  
+
   quadStats[stat] = quadStat
 
-proc initializeQuadgramStats*() =
+proc initializeQuadgramStats(map: FingerMap) =
   # Helper template to reduce repetition and improve readability
   template addQuad(name: string, checker: untyped) =
-    processQuadgram(name, checker)
+    processQuadgram(map, name, checker)
 
   # Group 1: Basic Quadgrams
   addQuad("Same Finger Quadgram", isSameFingerQuad)
@@ -34,7 +34,9 @@ proc initializeQuadgramStats*() =
 
   for prefix in ["", "Same Row ", "Adjacent Finger ", "Same Row Adjacent Finger "]:
     for (suffix, checker) in altVariants:
-      addQuad(prefix & "Chained Alternation" & suffix, checker)
+      addQuad(prefix & "Chained Alternation" & suffix,
+        proc(map: FingerMap, row0, col0, row1, col1, row2, col2, row3, col3: int): bool =
+          checker(map, row0, col0, row1, col1, row2, col2, row3, col3))
 
   # Group 3: One Hand Quadgrams
   const oneHandVariants = [
@@ -45,7 +47,9 @@ proc initializeQuadgramStats*() =
 
   for prefix in ["Quad ", "Quad Same Row ", "Quad Adjacent Finger ", "Quad Same Row Adjacent Finger "]:
     for (suffix, checker) in oneHandVariants:
-      addQuad(prefix & "One Hand" & suffix, checker)
+      addQuad(prefix & "One Hand" & suffix,
+        proc(map: FingerMap, row0, col0, row1, col1, row2, col2, row3, col3: int): bool =
+          checker(map, row0, col0, row1, col1, row2, col2, row3, col3))
 
   # Group 4: Roll Quadgrams
   const rollVariants = [
@@ -56,7 +60,9 @@ proc initializeQuadgramStats*() =
 
   for prefix in ["Quad ", "Quad Same Row ", "Quad Adjacent Finger ", "Quad Same Row Adjacent Finger "]:
     for (suffix, checker) in rollVariants:
-      addQuad(prefix & "Roll" & suffix, checker)
+      addQuad(prefix & "Roll" & suffix,
+        proc(map: FingerMap, row0, col0, row1, col1, row2, col2, row3, col3: int): bool =
+          checker(map, row0, col0, row1, col1, row2, col2, row3, col3))
 
   # Group 5: True Roll variants
   const trueRollVariants = [
@@ -67,7 +73,9 @@ proc initializeQuadgramStats*() =
 
   for prefix in ["", "Same Row ", "Adjacent Finger ", "Same Row Adjacent Finger "]:
     for (suffix, checker) in trueRollVariants:
-      addQuad(prefix & "True Roll" & suffix, checker)
+      addQuad(prefix & "True Roll" & suffix,
+        proc(map: FingerMap, row0, col0, row1, col1, row2, col2, row3, col3: int): bool =
+          checker(map, row0, col0, row1, col1, row2, col2, row3, col3))
 
   # Group 6: Chained Roll variants
   const chainedRollVariants = [
@@ -79,4 +87,6 @@ proc initializeQuadgramStats*() =
 
   for prefix in ["", "Same Row ", "Adjacent Finger ", "Same Row Adjacent Finger "]:
     for (suffix, checker) in chainedRollVariants:
-      addQuad(prefix & "Chained Roll" & suffix, checker)
+      addQuad(prefix & "Chained Roll" & suffix,
+        proc(map: FingerMap, row0, col0, row1, col1, row2, col2, row3, col3: int): bool =
+          checker(map, row0, col0, row1, col1, row2, col2, row3, col3))

@@ -1,9 +1,14 @@
 import os, strutils, tables, sets, options, logging, times, math, sequtils, algorithm
 
-include global, objects, util, io, log, statsUtil, stats, analyze 
+include global, objects, util, io, log, fingerUtils, bigramAnalysis, trigramAnalysis, quadgramAnalysis, skipgramAnalysis, stats, analyze
 
 proc main() =
-  initializeStats()
+
+  # load fingermap from config file
+  var fingerMap = loadFingerMap("config.json")
+
+  # initialize the stats
+  initializeStats(fingerMap)
 
   info("Reading corpus")
   readCorpus("monkey0-7_IanDouglas")

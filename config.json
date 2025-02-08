@@ -1,0 +1,21 @@
+{
+  "fingerAssignments": [
+    ["@", "LP", "LR", "LM", "LM", "LI", "RI", "RI", "RM", "RR", "RP", "@"],
+    ["@", "LP", "LR", "LM", "LI", "LI", "RI", "RI", "RM", "RR", "RP", "RP"],
+    ["@", "LR", "LM", "LI", "LI", "LI", "RI", "RI", "RM", "RR", "RP", "@"]
+  ],
+  "adjacentPairs": [
+    ["LP", "LR"],
+    ["LR", "LM"],
+    ["LM", "LI"],
+    ["RI", "RM"],
+    ["RM", "RR"],
+    ["RR", "RP"]
+  ],
+  "stretches": [
+    { "row": 0, "col": 0 },
+    { "row": 0, "col": 5 },
+    { "row": 0, "col": 6 },
+    { "row": 0, "col": 11 }
+  ]
+}

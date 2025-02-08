@@ -1,7 +1,7 @@
 type
-  BiOperation = proc(row0, col0, row1, col1: int): int {.closure.}
+  BiOperation = proc(map: FingerMap, row0, col0, row1, col1: int): bool {.closure.}
 
-proc processBigram(stat: string, op: BiOperation, fing: int = -1) =
+proc processBigram(map: FingerMap, stat: string, op: BiOperation, targetFinger: Option[Finger] = none(Finger)) =
   var biStat = BiStat(
     ngrams: newSeq[int](),
     weight: -Inf
@@ -9,53 +9,57 @@ proc processBigram(stat: string, op: BiOperation, fing: int = -1) =
   for i in 0..<Dim2:
     var row0, col0, row1, col1: int
     unflatBi(i, row0, col0, row1, col1)
-    if op(row0, col0, row1, col1) == 1 and (fing == -1 or finger(row0, col0) == fing):
-      biStat.ngrams.add(i)
+    if targetFinger.isNone:
+      if op(map, row0, col0, row1, col1):
+        biStat.ngrams.add(i)
+    else:
+      let f = getFinger(map, row0, col0)
+      if f.isSome and f.get == targetFinger.get and op(map, row0, col0, row1, col1):
+        biStat.ngrams.add(i)
 
   biStats[stat] = biStat
 
-proc initializeBigramStats() =
-  const 
-    fingerStatNames: array[8, string] = [
-      "Left Pinky Bigram",
-      "Left Ring Bigram",
-      "Left Middle Bigram",
-      "Left Index Bigram",
-      "Right Index Bigram",
-      "Right Middle Bigram",
-      "Right Ring Bigram",
-      "Right Pinky Bigram"
-    ]
+proc initializeBigramStats(map: FingerMap) =
+  let fingerStatNames: array[8, string] = [
+    "Left Pinky Bigram",     # ord(LP) = 0
+    "Left Ring Bigram",      # ord(LR) = 1
+    "Left Middle Bigram",    # ord(LM) = 2
+    "Left Index Bigram",     # ord(LI) = 3
+    "Right Index Bigram",    # ord(RI) = 4
+    "Right Middle Bigram",   # ord(RM) = 5
+    "Right Ring Bigram",     # ord(RR) = 6
+    "Right Pinky Bigram"     # ord(RP) = 7
+  ]
 
-    badFingerStatNames: array[8, string] = [
-      "Bad Left Pinky Bigram",
-      "Bad Left Ring Bigram",
-      "Bad Left Middle Bigram",
-      "Bad Left Index Bigram",
-      "Bad Right Index Bigram",
-      "Bad Right Middle Bigram",
-      "Bad Right Ring Bigram",
-      "Bad Right Pinky Bigram"
-    ]
+  let badFingerStatNames: array[8, string] = [
+    "Bad Left Pinky Bigram",
+    "Bad Left Ring Bigram",
+    "Bad Left Middle Bigram",
+    "Bad Left Index Bigram",
+    "Bad Right Index Bigram",
+    "Bad Right Middle Bigram",
+    "Bad Right Ring Bigram",
+    "Bad Right Pinky Bigram"
+  ]
 
   # Same Finger Bigram
-  processBigram("Same Finger Bigram", isSameFingerBi)
+  processBigram(map, "Same Finger Bigram", isSameFingerBi)
 
   # Finger-specific Bigrams
-  for fing in 0..7:
-    processBigram(fingerStatNames[fing], isSameFingerBi, fing)
+  for finger in Finger:
+    processBigram(map, fingerStatNames[ord(finger)], isSameFingerBi, some(finger))
 
   # Bad Same Finger Bigram
-  processBigram("Bad Same Finger Bigram", isBadSameFingerBi)
+  processBigram(map, "Bad Same Finger Bigram", isBadSameFingerBi)
 
   # Bad Finger-specific Bigrams
-  for fing in 0..7:
-    processBigram(badFingerStatNames[fing], isBadSameFingerBi, fing)
+  for finger in Finger:
+    processBigram(map, badFingerStatNames[ord(finger)], isBadSameFingerBi, some(finger))
 
   # Russor stats
-  processBigram("Full Russor Bigram", isFullRussor)
-  processBigram("Half Russor Bigram", isHalfRussor)
+  processBigram(map, "Full Russor Bigram", isFullRussor)
+  processBigram(map, "Half Russor Bigram", isHalfRussor)
 
   # LSBs
-  processBigram("Index Stretch Bigram", isIndexStretchBi)
-  processBigram("Pinky Stretch Bigram", isPinkyStretchBi)
+  processBigram(map, "Index Stretch Bigram", isIndexStretchBi)
+  processBigram(map, "Pinky Stretch Bigram", isPinkyStretchBi)

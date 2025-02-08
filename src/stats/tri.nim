@@ -1,7 +1,7 @@
 type
-  TriOperation = proc(row0, col0, row1, col1, row2, col2: int): int
+  TriOperation = proc(map: FingerMap, row0, col0, row1, col1, row2, col2: int): bool {.closure.}
 
-proc processTrigram(stat: string, op: TriOperation) =
+proc processTrigram(map: FingerMap, stat: string, op: TriOperation) =
   var triStat = TriStat(
     ngrams: newSeq[int](),
     weight: -Inf
@@ -9,15 +9,17 @@ proc processTrigram(stat: string, op: TriOperation) =
   for i in 0..<Dim3:
     var row0, col0, row1, col1, row2, col2: int
     unflatTri(i, row0, col0, row1, col1, row2, col2)
-    if op(row0, col0, row1, col1, row2, col2) == 1:
+    if op(map, row0, col0, row1, col1, row2, col2):
       triStat.ngrams.add(i)
 
   triStats[stat] = triStat
 
-proc initializeTrigramStats() =
+proc initializeTrigramStats(map: FingerMap) =
   # Helper template to reduce repetition
   template addTrigram(name: string, checker: untyped) =
-    processTrigram(name, checker)
+    processTrigram(map, name,
+      proc(map: FingerMap, row0, col0, row1, col1, row2, col2: int): bool =
+        checker(map, row0, col0, row1, col1, row2, col2))
 
   # Basic trigrams
   addTrigram("Same Finger Trigram", isSameFingerTri)

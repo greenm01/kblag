@@ -1,7 +1,7 @@
 type
-  MonoCondition = proc(row0, col0: int): bool {.closure.}
+  MonoCondition = proc(map: FingerMap, row0, col0: int): bool {.closure.}
 
-proc processMono(stat: string, condition: MonoCondition) =
+proc processMono(map: FingerMap, stat: string, condition: MonoCondition) =
   var monoStat = MonoStat(
     ngrams: newSeq[int](),
     weight: -Inf
@@ -9,68 +9,87 @@ proc processMono(stat: string, condition: MonoCondition) =
   for i in 0..<Dim1:
     var row0, col0: int
     unflatMono(i, row0, col0)
-    if condition(row0, col0): 
+    if condition(map, row0, col0):
       monoStat.ngrams.add(i)
 
   monoStats[stat] = monoStat
 
-proc initializeMonoStats() =
-  const 
-    fingerStatNames: array[8, string] = [
-      "Left Pinky Usage",
-      "Left Ring Usage",
-      "Left Middle Usage",
-      "Left Index Usage",
-      "Right Index Usage",
-      "Right Middle Usage",
-      "Right Ring Usage",
-      "Right Pinky Usage"
-    ]
+proc initializeMonoStats(map: FingerMap) =
+  const
+    fingerStatNames = {
+      LP: "Left Pinky Usage",
+      LR: "Left Ring Usage",
+      LM: "Left Middle Usage",
+      LI: "Left Index Usage",
+      RI: "Right Index Usage",
+      RM: "Right Middle Usage",
+      RR: "Right Ring Usage",
+      RP: "Right Pinky Usage"
+    }.toTable
 
-    columnStatNames: array[12, string] = [
-      "Left Outer Usage",    # Column 0
-      "", "", "", "",        # Columns 1-4 (unused)
-      "Left Inner Usage",    # Column 5
-      "Right Inner Usage",   # Column 6
-      "", "", "", "",        # Columns 7-10 (unused)
-      "Right Outer Usage"    # Column 11
-    ]
+    rowStatNames = {
+      0: "Top Row Usage",
+      1: "Home Row Usage",
+      2: "Bottom Row Usage"
+    }.toTable
 
-    rowStatNames: array[3, string] = [
-      "Top Row Usage",       # Row 0
-      "Home Row Usage",      # Row 1
-      "Bottom Row Usage"     # Row 2
-    ]
-
-    handStatNames: array[Hand, string] = [
-      "Left Hand Usage",     # Hand.leftHand
-      "Right Hand Usage"     # Hand.rightHand
-    ]
+    handStatNames = {
+      Left: "Left Hand Usage",
+      Right: "Right Hand Usage"
+    }.toTable
 
   # Initialize finger-specific stats
-  for fing in 0..7:
-    let fingCopy = fing  # Create a copy for closure
-    processMono(fingerStatNames[fing], proc(row0, col0: int): bool =
-      finger(row0, col0) == fingCopy
+  for finger in Finger:
+    processMono(map, fingerStatNames[finger],
+      proc(map: FingerMap, row0, col0: int): bool =
+        let f = getFinger(map, row0, col0)
+        f.isSome and f.get == finger
     )
 
-  # Initialize column-specific stats
-  for col in [0, 5, 6, 11]:
-    let colCopy = col  # Create a copy for closure
-    processMono(columnStatNames[col], proc(row0, col0: int): bool =
-      col0 == colCopy
-    )
+  # Initialize stretch and inner position stats
+  # Left outer (stretches)
+  processMono(map, "Left Outer Usage",
+    proc(map: FingerMap, row0, col0: int): bool =
+      let f = getFinger(map, row0, col0)
+      isStretch(map, row0, col0) and
+      (if f.isSome: getHand(f) == some(Left) else: false)
+  )
+
+  # Left inner (index finger positions)
+  processMono(map, "Left Inner Usage",
+    proc(map: FingerMap, row0, col0: int): bool =
+      let f = getFinger(map, row0, col0)
+      f.isSome and f.get == LI and not isStretch(map, row0, col0)
+  )
+
+  # Right inner (index finger positions)
+  processMono(map, "Right Inner Usage",
+    proc(map: FingerMap, row0, col0: int): bool =
+      let f = getFinger(map, row0, col0)
+      f.isSome and f.get == RI and not isStretch(map, row0, col0)
+  )
+
+  # Right outer (stretches)
+  processMono(map, "Right Outer Usage",
+    proc(map: FingerMap, row0, col0: int): bool =
+      let f = getFinger(map, row0, col0)
+      isStretch(map, row0, col0) and
+      (if f.isSome: getHand(f) == some(Right) else: false)
+  )
 
   # Initialize row-specific stats
   for row in 0..2:
-    let rowCopy = row  # Create a copy for closure
-    processMono(rowStatNames[row], proc(row0, col0: int): bool =
-      row0 == rowCopy
+    processMono(map, rowStatNames[row],
+      proc(map: FingerMap, row0, col0: int): bool =
+        row0 == row
     )
 
   # Initialize hand-specific stats
-  for h in Hand:
-    let hCopy = h  # Create a copy for closure
-    processMono(handStatNames[h], proc(row0, col0: int): bool =
-      getHand(row0, col0) == hCopy 
+  for hand in Hand:
+    processMono(map, handStatNames[hand],
+      proc(map: FingerMap, row0, col0: int): bool =
+        let f = getFinger(map, row0, col0)
+        if f.isNone:
+          return false
+        getHand(f) == some(hand)
     )

@@ -1,12 +1,12 @@
 type
-  SkipOperation = proc(row0, col0, row1, col1: int): int {.closure.}
+  SkipOperation = proc(map: FingerMap, row0, col0, row1, col1: int): bool {.closure.}
 
-proc processSkipgram(stat: string, op: SkipOperation, fing: Finger = 0) =
+proc processSkipgram(map: FingerMap, stat: string, op: SkipOperation, targetFinger: Option[Finger] = none(Finger)) =
   var skipStat = SkipStat(
     ngrams: newSeq[int](),
     weight: newSeq[float](SkipLength)
   )
-  
+
   # Initialize weights
   for i in 0..<SkipLength:
     skipStat.weight[i] = -Inf
@@ -14,45 +14,60 @@ proc processSkipgram(stat: string, op: SkipOperation, fing: Finger = 0) =
   for i in 0..<Dim2:
     var row0, col0, row1, col1: int
     unflatBi(i, row0, col0, row1, col1)
-    if op(row0, col0, row1, col1) == 1 and (fing == 0 or finger(row0, col0) == fing):
-      skipStat.ngrams.add(i)
+    if targetFinger.isNone:
+      if op(map, row0, col0, row1, col1):
+        skipStat.ngrams.add(i)
+    else:
+      let f = getFinger(map, row0, col0)
+      if f.isSome and f.get == targetFinger.get and op(map, row0, col0, row1, col1):
+        skipStat.ngrams.add(i)
 
   skipStats[stat] = skipStat
 
-proc initializeSkipgramStats() =
+proc initializeSkipgramStats(map: FingerMap) =
   const
-    fingerNames: array[8, string] = [
-      "Left Pinky Skipgram",
-      "Left Ring Skipgram",
-      "Left Middle Skipgram",
-      "Left Index Skipgram",
-      "Right Index Skipgram",
-      "Right Middle Skipgram",
-      "Right Ring Skipgram",
-      "Right Pinky Skipgram"
-    ]
+    fingerNames = {
+      LP: "Left Pinky Skipgram",
+      LR: "Left Ring Skipgram",
+      LM: "Left Middle Skipgram",
+      LI: "Left Index Skipgram",
+      RI: "Right Index Skipgram",
+      RM: "Right Middle Skipgram",
+      RR: "Right Ring Skipgram",
+      RP: "Right Pinky Skipgram"
+    }.toTable
 
-    badFingerNames: array[8, string] = [
-      "Bad Left Pinky Skipgram",
-      "Bad Left Ring Skipgram",
-      "Bad Left Middle Skipgram",
-      "Bad Left Index Skipgram",
-      "Bad Right Index Skipgram",
-      "Bad Right Middle Skipgram",
-      "Bad Right Ring Skipgram",
-      "Bad Right Pinky Skipgram"
-    ]
+    badFingerNames = {
+      LP: "Bad Left Pinky Skipgram",
+      LR: "Bad Left Ring Skipgram",
+      LM: "Bad Left Middle Skipgram",
+      LI: "Bad Left Index Skipgram",
+      RI: "Bad Right Index Skipgram",
+      RM: "Bad Right Middle Skipgram",
+      RR: "Bad Right Ring Skipgram",
+      RP: "Bad Right Pinky Skipgram"
+    }.toTable
 
   # Same Finger Skipgram
-  processSkipgram("Same Finger Skipgram", isSameFingerBi)
+  processSkipgram(map, "Same Finger Skipgram",
+    proc(map: FingerMap, row0, col0, row1, col1: int): bool {.closure.} =
+      isSameFingerSkip(map, 0, row0, col0, row1, col1))
 
   # Per Finger Skipgrams
-  for fing in 0..7:
-    processSkipgram(fingerNames[fing], isSameFingerBi, fing)
+  for finger in Finger:
+    processSkipgram(map, fingerNames[finger],
+      proc(map: FingerMap, row0, col0, row1, col1: int): bool {.closure.} =
+        isSameFingerSkip(map, 0, row0, col0, row1, col1),
+      some(finger))
 
   # Bad Same Finger Skipgram
-  processSkipgram("Bad Same Finger Skipgram", isBadSameFingerBi)
+  processSkipgram(map, "Bad Same Finger Skipgram",
+    proc(map: FingerMap, row0, col0, row1, col1: int): bool {.closure.} =
+      isBadSameFingerSkip(map, 0, row0, col0, row1, col1))
 
   # Per Finger Bad Skipgrams
-  for fing in 0..7:
-    processSkipgram(badFingerNames[fing], isBadSameFingerBi, fing)
+  for finger in Finger:
+    processSkipgram(map, badFingerNames[finger],
+      proc(map: FingerMap, row0, col0, row1, col1: int): bool {.closure.} =
+        isBadSameFingerSkip(map, 0, row0, col0, row1, col1),
+      some(finger))
