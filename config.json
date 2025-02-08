@@ -1,7 +1,7 @@
 {
   "fingerAssignments": [
-    ["LP", "LP", "LR", "LM", "LM", "LI", "RI", "RI", "RM", "RR", "RP", "RP"],
     ["LP", "LP", "LR", "LM", "LI", "LI", "RI", "RI", "RM", "RR", "RP", "RP"],
-    ["LP", "LR", "LM", "LI", "LI", "LI", "RI", "RI", "RM", "RR", "RP", "RP"]
+    ["LP", "LP", "LR", "LM", "LI", "LI", "RI", "RI", "RM", "RR", "RP", "RP"],
+    ["LP", "LP", "LR", "LM", "LI", "LI", "RI", "RI", "RM", "RR", "RP", "RP"]
   ]
 }

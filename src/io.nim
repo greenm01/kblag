@@ -59,7 +59,10 @@ proc loadFingerMap(configPath: string = "config.json"): FingerMap =
   # Start with default stretches and adjacent pairs
   result = initDefaultFingerMap()
 
-  let config = parseJson(readFile(configPath))
+  # TODO: specify on command line and/or incorporate into layout file
+  var angle = "config-anglemod.json"
+  let config = parseJson(readFile(angle))
+  #let config = parseJson(readFile(configPath))
 
   # Load only finger assignments from config
   let assignments = config["fingerAssignments"]

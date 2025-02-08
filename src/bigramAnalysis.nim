@@ -74,10 +74,10 @@ proc isIndexStretchBi(map: FingerMap, row0, col0, row1, col1: int): bool =
   if f1.isNone or f2.isNone:
     return false
 
-  (f1.get == LM and isStretch(map, row1, col1)) or
-  (f2.get == LM and isStretch(map, row0, col0)) or
-  (f1.get == RM and isStretch(map, row1, col1)) or
-  (f2.get == RM and isStretch(map, row0, col0))
+  (f1.get == LM and col1 == 5) or
+  (f2.get == LM and col0 == 5) or
+  (f1.get == RM and col1 == 6) or
+  (f2.get == RM and col0 == 6)
 
 proc isPinkyStretchBi(map: FingerMap, row0, col0, row1, col1: int): bool =
   let
@@ -87,7 +87,7 @@ proc isPinkyStretchBi(map: FingerMap, row0, col0, row1, col1: int): bool =
   if f1.isNone or f2.isNone:
     return false
 
-  (f1.get == LR and isStretch(map, row1, col1)) or
-  (f2.get == LR and isStretch(map, row0, col0)) or
-  (f1.get == RR and isStretch(map, row1, col1)) or
-  (f2.get == RR and isStretch(map, row0, col0))
+  (f1.get == LR and col1 == 0) or
+  (f2.get == LR and col1 == 0) or
+  (f1.get == RR and col1 == 11) or
+  (f2.get == RR and col1 == 11)

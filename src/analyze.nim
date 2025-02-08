@@ -77,6 +77,7 @@ proc analyzeLayout(map: var FingerMap) =
   let startTime = cpuTime()
 
   info("Reading layout")
+  # TODO: specify on command line
   var layout = readLayout("consort")
 
   info("Calculating layout scores")
