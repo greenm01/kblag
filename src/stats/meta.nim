@@ -25,7 +25,7 @@ proc findStatScore(statName: string, statType: char, lt: Layout): float =
 
   return NaN  # Stat not found
 
-proc metaAnalysis(lt: var Layout) =  # Make map parameter mutable
+proc metaAnalysis(lt: var Layout, map: var FingerMap) =  # Make map parameter mutable
   ## Performs the meta-analysis using the FingerMap and current layout.
   ## Calculates hand balance as the absolute difference between
   ## left and right hand usage.
@@ -46,5 +46,5 @@ proc metaAnalysis(lt: var Layout) =  # Make map parameter mutable
     lt.metaScore = some(handBalance)
 
   # Update the map's hand balance
-  #map.handBalance[Left] = leftHandScore
-  #map.handBalance[Right] = rightHandScore
+  map.handBalance[Left] = leftHandScore
+  map.handBalance[Right] = rightHandScore

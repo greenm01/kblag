@@ -1,13 +1,12 @@
 import os, strutils, tables, sets, options, logging, times, math, sequtils, algorithm
 
-include global, objects, util, io, log, fingerUtils, bigramAnalysis, trigramAnalysis, quadgramAnalysis, skipgramAnalysis, stats, analyze
+include global, objects, util, log, fingerUtils, io, bigramAnalysis, trigramAnalysis, quadgramAnalysis, skipgramAnalysis, stats, analyze
 
 proc main() =
-
-  # load fingermap from config file
+  # Load fingermap from config file first
   var fingerMap = loadFingerMap("config.json")
 
-  # initialize the stats
+  # Initialize the stats with the fingerMap
   initializeStats(fingerMap)
 
   info("Reading corpus")
@@ -23,10 +22,7 @@ proc main() =
   cleanStats()
 
   # Analyze layout
-  analyzeLayout()
-
-  #for name, stat in biStats:
-  #  echo name, ": ", stat.weight
+  analyzeLayout(fingerMap)
 
 
 when isMainModule:

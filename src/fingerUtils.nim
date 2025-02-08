@@ -18,6 +18,34 @@ type
       handBalance: TableRef[Hand, float]
       fingerLoads: TableRef[Finger, float]
 
+proc newFingerMap(): FingerMap =
+  result = FingerMap(
+    adjacentPairs: initHashSet[(Finger, Finger)](),
+    stretches: initHashSet[(int, int)](),
+    handBalance: newTable[Hand, float](),
+    fingerLoads: newTable[Finger, float]()
+  )
+
+proc initDefaultFingerMap(): FingerMap =
+  result = newFingerMap()
+
+  # Default adjacent finger pairs - never changes
+  result.adjacentPairs.incl((LP, LR))
+  result.adjacentPairs.incl((LR, LM))
+  result.adjacentPairs.incl((LM, LI))
+  result.adjacentPairs.incl((RI, RM))
+  result.adjacentPairs.incl((RM, RR))
+  result.adjacentPairs.incl((RR, RP))
+
+  # Default stretches - only top row
+  # Left hand stretches
+  result.stretches.incl((0, 0))  # Top row leftmost pinky
+  result.stretches.incl((0, 5))  # Top row inner left (index)
+
+  # Right hand stretches
+  result.stretches.incl((0, 6))  # Top row inner right (index)
+  result.stretches.incl((0, 11))  # Top row rightmost pinky
+
 proc getHand(f: Option[Finger]): Option[Hand] =
   if f.isNone:
     none(Hand)
@@ -30,68 +58,6 @@ proc isSameHand(f1, f2: Option[Finger]): bool =
   if f1.isNone or f2.isNone:
     return false
   getHand(f1).get == getHand(f2).get
-
-proc newFingerMap(): FingerMap =
-  result = FingerMap(
-    adjacentPairs: initHashSet[(Finger, Finger)](),
-    stretches: initHashSet[(int, int)](),
-    handBalance: newTable[Hand, float](),
-    fingerLoads: newTable[Finger, float]()
-  )
-
-proc initDefaultFingerMap(): FingerMap =
-  result = newFingerMap()
-
-  # Add default adjacent finger pairs
-  result.adjacentPairs.incl((LP, LR))
-  result.adjacentPairs.incl((LR, LM))
-  result.adjacentPairs.incl((LM, LI))
-  result.adjacentPairs.incl((RI, RM))
-  result.adjacentPairs.incl((RM, RR))
-  result.adjacentPairs.incl((RR, RP))
-
-proc loadFingerMap(filename: string): FingerMap =
-  result = newFingerMap()
-  let config = parseJson(readFile(filename))
-
-  # Load finger assignments
-  let assignments = config["fingerAssignments"]
-  for row in 0..<Row:
-    for col in 0..<Col:
-      let fingerStr = assignments[row][col].getStr
-      if fingerStr == "None" or fingerStr == "@":
-        result.assignments[row][col] = none(Finger)
-      else:
-        result.assignments[row][col] = some(parseEnum[Finger](fingerStr))
-
-  # Load adjacent pairs if specified
-  if config.hasKey("adjacentPairs"):
-    for pair in config["adjacentPairs"]:
-      let
-        f1 = parseEnum[Finger](pair[0].getStr)
-        f2 = parseEnum[Finger](pair[1].getStr)
-      result.adjacentPairs.incl((f1, f2))
-  else:
-    # Use default adjacent pairs if none specified
-    result.adjacentPairs = initDefaultFingerMap().adjacentPairs
-
-  # Load stretches
-  if config.hasKey("stretches"):
-    for stretch in config["stretches"]:
-      let
-        row = stretch["row"].getInt
-        col = stretch["col"].getInt
-      result.stretches.incl((row, col))
-
-  # Load hand balance if specified
-  if config.hasKey("handBalance"):
-    for hand, balance in config["handBalance"].pairs:
-      result.handBalance[parseEnum[Hand](hand)] = balance.getFloat
-
-  # Load finger loads if specified
-  if config.hasKey("fingerLoads"):
-    for finger, load in config["fingerLoads"].pairs:
-      result.fingerLoads[parseEnum[Finger](finger)] = load.getFloat
 
 proc getFinger(map: FingerMap, row, col: int): Option[Finger] =
   if row < 0 or row >= Row or col < 0 or col >= Col:
@@ -107,7 +73,11 @@ proc isAdjacent(map: FingerMap, f1, f2: Option[Finger]): bool =
   (f2.get, f1.get) in map.adjacentPairs
 
 proc isStretch(map: FingerMap, row, col: int): bool =
-  (row, col) in map.stretches
+  let f = getFinger(map, row, col)
+  if f.isNone:  # If no finger assigned, not a stretch
+    return false
+
+  return (row, col) in map.stretches
 
 proc validateFingerMap(map: FingerMap): bool =
   # Check matrix dimensions

@@ -1,5 +1,5 @@
-proc singleAnalyze(lt: var Layout) =
-  var 
+proc singleAnalyze(lt: var Layout, map: var FingerMap) =
+  var
     row0, col0, row1, col1, row2, col2, row3, col3: int
 
   # Calculate monogram statistics
@@ -48,7 +48,7 @@ proc singleAnalyze(lt: var Layout) =
           lt.skipScore[name][k] += linearSkip[index]
 
   # Perform meta-analysis, which may depend on previously calculated statistics.
-  metaAnalysis(lt)
+  metaAnalysis(lt, map)
 
 proc calcLayoutScore(lt: var Layout) =
   lt.score = 0.0
@@ -73,19 +73,18 @@ proc calcLayoutScore(lt: var Layout) =
     if lt.metaScore.isSome:  # Check if we have a valid meta score
       lt.score += lt.metaScore.get() * metaStat.weight
 
-proc analyzeLayout() = 
+proc analyzeLayout(map: var FingerMap) =
   let startTime = cpuTime()
 
   info("Reading layout")
   var layout = readLayout("consort")
 
   info("Calculating layout scores")
-  singleAnalyze(layout)
+  singleAnalyze(layout, map)
   calcLayoutScore(layout)
 
   let endTime = cpuTime()
-  # Calculate elapsed time in milliseconds
   let elapsedTimeMs = (endTime - startTime) * 1000
   info("Total layout analysis time: ", elapsedTimeMs, " ms")
-  
+
   printLayout(layout)

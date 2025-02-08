@@ -38,58 +38,59 @@ proc initializeMonoStats(map: FingerMap) =
       Right: "Right Hand Usage"
     }.toTable
 
-  # Initialize finger-specific stats
-  for finger in Finger:
-    processMono(map, fingerStatNames[finger],
-      proc(map: FingerMap, row0, col0: int): bool =
-        let f = getFinger(map, row0, col0)
-        f.isSome and f.get == finger
-    )
+  # Helper to check if position is valid (not @)
+  proc isValidPosition(map: FingerMap, row, col: int): bool =
+    let f = getFinger(map, row, col)
+    f.isSome  # Position has a finger assigned
 
-  # Initialize stretch and inner position stats
   # Left outer (stretches)
   processMono(map, "Left Outer Usage",
     proc(map: FingerMap, row0, col0: int): bool =
-      let f = getFinger(map, row0, col0)
-      isStretch(map, row0, col0) and
-      (if f.isSome: getHand(f) == some(Left) else: false)
-  )
-
-  # Left inner (index finger positions)
-  processMono(map, "Left Inner Usage",
-    proc(map: FingerMap, row0, col0: int): bool =
-      let f = getFinger(map, row0, col0)
-      f.isSome and f.get == LI and not isStretch(map, row0, col0)
-  )
-
-  # Right inner (index finger positions)
-  processMono(map, "Right Inner Usage",
-    proc(map: FingerMap, row0, col0: int): bool =
-      let f = getFinger(map, row0, col0)
-      f.isSome and f.get == RI and not isStretch(map, row0, col0)
+      col0 == 0
   )
 
   # Right outer (stretches)
   processMono(map, "Right Outer Usage",
     proc(map: FingerMap, row0, col0: int): bool =
-      let f = getFinger(map, row0, col0)
-      isStretch(map, row0, col0) and
-      (if f.isSome: getHand(f) == some(Right) else: false)
+      col0 == 11
   )
 
-  # Initialize row-specific stats
-  for row in 0..2:
-    processMono(map, rowStatNames[row],
+  # Inner positions
+  processMono(map, "Left Inner Usage",
+    proc(map: FingerMap, row0, col0: int): bool =
+      col0 == 5
+  )
+
+  processMono(map, "Right Inner Usage",
+    proc(map: FingerMap, row0, col0: int): bool =
+      col0 == 6
+  )
+
+  # For finger-specific stats
+  for finger in Finger:
+    processMono(map, fingerStatNames[finger],
       proc(map: FingerMap, row0, col0: int): bool =
-        row0 == row
+        let f = getFinger(map, row0, col0)
+        if not isValidPosition(map, row0, col0):
+          return false
+        f.get == finger
     )
 
-  # Initialize hand-specific stats
+  # For hand stats
   for hand in Hand:
     processMono(map, handStatNames[hand],
       proc(map: FingerMap, row0, col0: int): bool =
         let f = getFinger(map, row0, col0)
-        if f.isNone:
+        if not isValidPosition(map, row0, col0):
           return false
-        getHand(f) == some(hand)
+        getHand(f).get == hand
+    )
+
+  # For row stats
+  for row in 0..2:
+    processMono(map, rowStatNames[row],
+      proc(map: FingerMap, row0, col0: int): bool =
+        if not isValidPosition(map, row0, col0):
+          return false
+        row0 == row
     )

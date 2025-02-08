@@ -2,6 +2,10 @@
 addHandler(newConsoleLogger(fmtStr = "$datetime | $levelname | "))
 setLogFilter(lvlDebug)  # Set the minimum log level
 
+type LayoutConfig = object
+  matrix: array[Row, array[Col, int]]
+  name: string
+
 proc initCharTable() =
   # Initialize all to 0 (invalid)
   for i in 32..126:
@@ -11,7 +15,7 @@ proc initCharTable() =
   for i, c in English:
     let index = i div 2
     assert index in 0..<LangLength, "Index out of bounds during charTable initialization"
-    charTable[ord(c)] = index  
+    charTable[ord(c)] = index
 
   charTable[ord('@')] = -1
 
@@ -22,19 +26,87 @@ proc convertChar(c: char): int =
 proc isValid(idx: int): bool =
   idx in 0..<LangLength
 
-proc readLayout(layoutName: string): Layout =
-  ## Reads a keyboard layout from a .glg file and initializes a Layout object
-  
-  # Allocate memory
-  result = Layout()
+proc readLayoutConfig(layoutName: string): LayoutConfig =
+  ## Reads a keyboard layout from a .glg file and returns just the raw configuration
   result.name = layoutName
+
+  let path = "./data/" & "/layouts/" & layoutName & ".glg"
+
+  try:
+    let file = open(path)
+    defer: file.close()
+
+    var row = 0
+    for line in file.lines:
+      if row >= Row: break
+
+      var col = 0
+      for c in line.splitWhitespace():
+        if col >= Col: break
+
+        # Convert @ to -1, otherwise convert to character code
+        if c == "@":
+          result.matrix[row][col] = -1
+        else:
+          result.matrix[row][col] = convertChar(c[0]).int
+
+        inc col
+      inc row
+  except IOError:
+    raise newException(IOError, "Layout file not found. Failed to open or read: " & path)
+
+proc loadFingerMap(configPath: string = "config.json"): FingerMap =
+  # Start with default stretches and adjacent pairs
+  result = initDefaultFingerMap()
+
+  let config = parseJson(readFile(configPath))
+
+  # Load only finger assignments from config
+  let assignments = config["fingerAssignments"]
+  for row in 0..<Row:
+    for col in 0..<Col:
+      let fingerStr = assignments[row][col].getStr
+      result.assignments[row][col] = some(parseEnum[Finger](fingerStr))
+
+proc readLayout(layoutName: string): Layout =
+  ## Reads a keyboard layout from a .glg file and returns the layout configuration
+
+  result.name = layoutName
+
+  let path = "./data/" & "/layouts/" & layoutName & ".glg"
+
+  try:
+    let file = open(path)
+    defer: file.close()
+
+    var row = 0
+    for line in file.lines:
+      if row >= Row: break
+
+      var col = 0
+      for c in line.splitWhitespace():
+        if col >= Col: break
+
+        # Convert @ to -1, otherwise convert to character code
+        if c == "@":
+          result.matrix[row][col] = -1
+        else:
+          result.matrix[row][col] = convertChar(c[0]).int
+
+        inc col
+      inc row
+
+  except IOError:
+    raise newException(IOError, "Layout file not found. Failed to open or read: " & path)
+
+  # Initialize score tables
   result.monoScore = initTable[string, float]()
-  result.biScore = initTable[string, float]()  
+  result.biScore = initTable[string, float]()
   result.triScore = initTable[string, float]()
   result.quadScore = initTable[string, float]()
   result.skipScore = initTable[string, array[SkipLength, float]]()
 
-  # Assign keys
+  # Initialize scores
   for name in monoStats.keys:
     result.monoScore[name] = 0.0
   for name in biStats.keys:
@@ -47,42 +119,12 @@ proc readLayout(layoutName: string): Layout =
   var zeroArray: array[SkipLength, float]
   for name in skipStats.keys:
     result.skipScore[name] = zeroArray
-  
-  # Construct the path to the layout file
-  let path = "./data/" & "/layouts/" & layoutName & ".glg"
-  
-  try:
-    # Try to open the file
-    let file = open(path)
-    defer: file.close()
-  
-    # Read the layout matrix
-    var row = 0
-    for line in file.lines:
-      if row >= Row:
-        break
-        
-      var col = 0
-      for c in line.splitWhitespace():
-        if col >= Col:
-          break
-          
-        # Convert @ to -1, otherwise convert to character code
-        if c == "@":
-          result.matrix[row][col] = -1
-        else:
-          result.matrix[row][col] = convertChar(c[0]).int 
-          
-        inc col
-      inc row
-  except IOError:
-    raise newException(IOError, "Layout file not found. Failed to open or read: " & path)
 
 proc cleanAscii(filename: string): string =
   try:
     var file = open(filename)
     defer: file.close()
-    
+
     result = ""
     while not file.endOfFile:
       let c = uint8(file.readChar())
@@ -103,26 +145,26 @@ proc readCorpus(corpusName: string) =
   var mem = @[-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
   initCharTable()
   initCorpusArrays()
-  
+
   for c in cleanedText:
     mem[0] = convertChar(c)
-    
-    if mem[0] > 0:  
+
+    if mem[0] > 0:
       inc corpusMono[mem[0]]
-      
+
       if mem[1] > 0:
         inc corpusBi[mem[1]][mem[0]]
-        
+
         if mem[2] > 0:
           inc corpusTri[mem[2]][mem[1]][mem[0]]
-          
+
           if mem[3] > 0:
             inc corpusQuad[mem[3]][mem[2]][mem[1]][mem[0]]
-      
+
       for i in 2..10:
         if mem[i] > 0:
           inc corpusSkip[i-2][mem[i]][mem[0]]
-    
+
     mem.rotateRight()
 
 proc updateStats[T](stats: var Table[string, T], name: string, weights: openArray[float]) =
@@ -140,7 +182,7 @@ proc readWeights(weightName: string) =
  let path = "./data/weights/" & weightName & ".wght"
  if not fileExists(path):
    raise newException(IOError, "Weights file not found: " & path)
- 
+
  let file = open(path, fmRead)
  defer: file.close()
 
@@ -149,10 +191,10 @@ proc readWeights(weightName: string) =
  for line in file.lines:
    let parts = line.split(':')
    if parts.len < 2: continue
-   
+
    let name = parts[0].strip()
    var weights: seq[float] = @[]
-   
+
    for token in parts[1].strip().splitWhitespace():
      try:
        weights.add(parseFloat(token))
@@ -161,9 +203,9 @@ proc readWeights(weightName: string) =
        continue
 
    seenMetrics.incl(name)
-   
-   if not (name in monoStats or name in biStats or 
-           name in triStats or name in quadStats or 
+
+   if not (name in monoStats or name in biStats or
+           name in triStats or name in quadStats or
            name in skipStats or name in metaStats):
      error "Unknown metric in weights file: ", name
      continue
@@ -201,7 +243,7 @@ proc readWeights(weightName: string) =
 
 proc fingerSortKey(name: string): int =
   let n = name.toLowerAscii
-  
+
   case n
   # Monogram usage - matches first 17 entries
   of "left outer usage": 0
@@ -380,7 +422,7 @@ proc fingerSortKey(name: string): int =
 
   # Meta stat - last entry
   of "hand balance": 167
-  
+
   else: 1000  # Everything else alphabetically
 
 proc statCompare(x, y: string): int =
@@ -394,13 +436,13 @@ proc statCompare(x, y: string): int =
 
 proc convertBack(i: int): char =
   ## Converts an index in the language array back to its corresponding character.
-  ## 
+  ##
   ## Parameters:
   ##   i: The index to convert.
   ##
   ## Returns:
   ##   The character corresponding to the index, or '@' if out of bounds.
-  
+
   if i >= 0 and i < LangLength:
     result = English[i * 2]  # Get lowercase version from even indices
   else:
@@ -408,7 +450,7 @@ proc convertBack(i: int): char =
 
 proc quietPrint(lt: Layout) =
   ## Prints the layout name, keyboard matrix, and score.
-  ## 
+  ##
   ## Parameters:
   ##   lt: The layout to be printed
 
@@ -429,8 +471,8 @@ proc normalPrint*(lt: Layout) =
   ## Prints the layout along with all ngram stats.
   ## Finger usage stats are sorted from left pinky to right pinky,
   ## followed by hand stats, then everything else alphabetically.
-  
-  # Print basic layout info  
+
+  # Print basic layout info
   quietPrint(lt)
 
   # Print monogram stats
@@ -469,7 +511,7 @@ proc normalPrint*(lt: Layout) =
 
 proc verbosePrint(lt: Layout) =
   ## Prints detailed information, currently the same as normalPrint.
-  ## 
+  ##
   ## Parameters:
   ##   lt: The layout to be printed
   normalPrint(lt)
@@ -482,7 +524,7 @@ proc printLayout(lt: Layout) =
   ##
   ## Parameters:
   ##   lt: The layout to be printed
-  
+
   case outputMode
   of Quiet:
     quietPrint(lt)

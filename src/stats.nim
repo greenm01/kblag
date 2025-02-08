@@ -44,7 +44,7 @@ proc removeZeroWeightsSkip(stats: var Table[string, SkipStat]) =
   for key in keysToDelete:
     stats.del(key)
 
-proc clean_stats() =
+proc cleanStats() =
   ## Remove zero-weight entries from each table
   removeZeroWeights(monoStats)
   removeZeroWeights(biStats)
