@@ -12,13 +12,33 @@ type
   Layout = object
     name: string
     matrix: array[Row, array[Col, int]]
-    monoScore: Table[string, float]  
-    biScore: Table[string, float]    
-    triScore: Table[string, float]   
-    quadScore: Table[string, float]  
-    skipScore: Table[string, array[SkipLength, float]] 
+    monoScore: Table[string, float]
+    biScore: Table[string, float]
+    triScore: Table[string, float]
+    quadScore: Table[string, float]
+    skipScore: Table[string, array[SkipLength, float]]
     metaScore: Option[float]
     score: float
+
+  # 24 bits available
+  # Layout:
+  # Byte 0: [row0:2|col0:4|row1:2]
+  # Byte 1: [col1:4|row2:2|col2:4]
+  # Byte 2: [row3:2|col3:4|unused:2]
+  PackedQuad = array[3, uint8]
+
+  # 24 bits available
+  # Layout:
+  # Byte 0: [row0:2|col0:4|row1:2]
+  # Byte 1: [col1:4|row2:2|col2_hi:2]
+  # Byte 2: [col2_lo:2|unused:6]
+  PackedTri = array[3, uint8]
+
+  # 16 bits available
+  # Layout:
+  # Byte 0: [row0:2|col0:4|row1:2]
+  # Byte 1: [col1:4|unused:4]
+  PackedBi = array[2, uint8]
 
   # Structures to represent statistics based on ngrams.
   MonoStat = object
@@ -26,15 +46,15 @@ type
     weight: float
 
   BiStat = object
-    ngrams: seq[int]
+    ngrams: seq[PackedBi]
     weight: float
 
   TriStat = object
-    ngrams: seq[int]
+    ngrams: seq[PackedTri]
     weight: float
 
   QuadStat = object
-    ngrams: seq[int]
+    ngrams: seq[PackedQuad]
     weight: float
 
   SkipStat = object

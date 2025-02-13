@@ -3,19 +3,21 @@ type
 
 proc processBigram(map: FingerMap, stat: string, op: BiOperation, targetFinger: Option[Finger] = none(Finger)) =
   var biStat = BiStat(
-    ngrams: newSeq[int](),
+    ngrams: newSeq[PackedBi](),
     weight: -Inf
   )
-  for i in 0..<Dim2:
-    var row0, col0, row1, col1: int
-    unflatBi(i, row0, col0, row1, col1)
-    if targetFinger.isNone:
-      if op(map, row0, col0, row1, col1):
-        biStat.ngrams.add(i)
-    else:
-      let f = getFinger(map, row0, col0)
-      if f.isSome and f.get == targetFinger.get and op(map, row0, col0, row1, col1):
-        biStat.ngrams.add(i)
+
+  for row0 in 0..<Row:
+    for col0 in 0..<Col:
+      if targetFinger.isSome:
+        let f = getFinger(map, row0, col0)
+        if f.isNone or f.get != targetFinger.get:
+          continue
+
+      for row1 in 0..<Row:
+        for col1 in 0..<Col:
+          if op(map, row0, col0, row1, col1):
+            biStat.ngrams.add(packBi(row0, col0, row1, col1))
 
   biStats[stat] = biStat
 

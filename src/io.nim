@@ -6,25 +6,82 @@ type LayoutConfig = object
   matrix: array[Row, array[Col, int]]
   name: string
 
-proc initCharTable() =
-  # Initialize all to 0 (invalid)
-  for i in 32..126:
-    charTable[i] = 0
-
-  # Set up valid mappings from English
-  for i, c in English:
-    let index = i div 2
-    assert index in 0..<LangLength, "Index out of bounds during charTable initialization"
-    charTable[ord(c)] = index
-
-  charTable[ord('@')] = -1
+type
+  LangError = object of CatchableError
 
 proc convertChar(c: char): int =
-  result = charTable[c.ord]
-  if result == 0: result = -1
+  let value = charTable.getOrDefault(Rune(c), 0)
+  if value == 0: -1 else: value
 
 proc isValid(idx: int): bool =
-  idx in 0..<LangLength
+  idx in 0..<langLength
+
+proc checkDuplicates(arr: seq[Rune]): int =
+  ## Checks for duplicate characters in language definition, excluding adjacent pairs
+  ## Returns -1 if no duplicates found, otherwise returns count of duplicate pairs
+  result = -1
+  for i in 0..<arr.len:
+    for j in (i+2)..<arr.len:
+      if arr[i] == arr[j] and arr[i] != Rune('@'):
+        inc result
+
+proc readLang(langName: string) =
+  ## Reads a language definition file and builds a character mapping table.
+  ## The file must:
+  ##  - Begin with exactly two spaces
+  ##  - Contain no more than 100 characters
+  ##  - Have no duplicates (except adjacent pairs for shifted characters)
+  ##  - Not contain the '@' character (reserved)
+  charTable.clear()
+
+  let path = "./data/" & langName & "/" & langName & ".lang"
+
+  proc error(msg: string) =
+    raise newException(LangError, msg)
+
+  var langFile: File
+  try:
+    langFile = open(path)
+  except IOError:
+    error("Lang file not found.")
+  defer: langFile.close()
+
+  while langArr.len <= MaxLangSize:
+    try:
+      let c = langFile.readChar()
+      if c == '\0' or c == '\n':
+        langArr.add(Rune('@'))
+      elif c == '@':
+        error("'@' found in lang, illegal character.")
+      else:
+        langArr.add(Rune(c))
+    except EOFError:
+      if langArr.len < MaxLangSize:
+        langArr.add(Rune('@'))
+      break
+
+  if langArr.len < 2 or langArr[0] != Rune(' ') or langArr[1] != Rune(' '):
+    error("Lang file must begin with 2 spaces")
+
+  if langArr.len > MaxLangSize:
+    error("Lang file too long (>" & $MaxLangSize & " characters)")
+
+  if checkDuplicates(langArr) != -1:
+    error("Lang file contains duplicate characters.")
+
+  # Build character mapping table
+  for i, rune in langArr:
+    if rune == Rune('@'):
+      charTable[Rune('@')] = -1
+    else:
+      charTable[rune] = i div 2
+
+  langLength = (charTable.len - 1) div 2
+
+proc getCharCode(c: Rune): int =
+  ## Gets the position code for a character in the language.
+  ## Returns -1 if the character is not in the language.
+  charTable.getOrDefault(c, -1)
 
 proc readLayoutConfig(layoutName: string): LayoutConfig =
   ## Reads a keyboard layout from a .glg file and returns just the raw configuration
@@ -41,7 +98,7 @@ proc readLayoutConfig(layoutName: string): LayoutConfig =
       if row >= Row: break
 
       var col = 0
-      for c in line.splitWhitespace():
+      for c in strutils.splitWhitespace(line):
         if col >= Col: break
 
         # Convert @ to -1, otherwise convert to character code
@@ -55,21 +112,48 @@ proc readLayoutConfig(layoutName: string): LayoutConfig =
   except IOError:
     raise newException(IOError, "Layout file not found. Failed to open or read: " & path)
 
-proc loadFingerMap(configPath: string = "config.json"): FingerMap =
+proc readFingerMap(path: string): FingerMap =
   # Start with default stretches and adjacent pairs
   result = initDefaultFingerMap()
 
-  # TODO: specify on command line and/or incorporate into layout file
-  var angle = "config-anglemod.json"
-  let config = parseJson(readFile(angle))
-  #let config = parseJson(readFile(configPath))
+  let configPath = path & ".json"
 
-  # Load only finger assignments from config
+  var jsonContent: string
+  try:
+    jsonContent = readFile(configPath)
+  except IOError:
+    raise newException(IOError, "Failed to read finger map config: " & configPath)
+
+  var config: JsonNode
+  try:
+    config = parseJson(jsonContent)
+  except JsonParsingError:
+    raise newException(JsonParsingError, "Invalid JSON in finger map config: " & configPath)
+
+  if not config.hasKey("fingerAssignments"):
+    raise newException(ValueError, "Missing 'fingerAssignments' in config: " & configPath)
+
   let assignments = config["fingerAssignments"]
+
+  # Validate array dimensions exactly match Row x Col
+  if assignments.len != Row:
+    raise newException(ValueError, "Expected " & $Row & " rows, got " & $assignments.len)
+
   for row in 0..<Row:
+    if assignments[row].len != Col:
+      raise newException(ValueError, "Row " & $row & " expected " & $Col &
+                        " columns, got " & $assignments[row].len)
+
     for col in 0..<Col:
-      let fingerStr = assignments[row][col].getStr
-      result.assignments[row][col] = some(parseEnum[Finger](fingerStr))
+      let fingerStr = assignments[row][col].getStr()
+      if fingerStr == "@":
+        result.assignments[row][col] = none(Finger)
+      else:
+        try:
+          result.assignments[row][col] = some(parseEnum[Finger](fingerStr))
+        except ValueError:
+          raise newException(ValueError,
+            "Invalid finger value '" & fingerStr & "' at position [" & $row & "][" & $col & "]")
 
 proc readLayout(layoutName: string): Layout =
   ## Reads a keyboard layout from a .glg file and returns the layout configuration
@@ -87,7 +171,7 @@ proc readLayout(layoutName: string): Layout =
       if row >= Row: break
 
       var col = 0
-      for c in line.splitWhitespace():
+      for c in strutils.splitWhitespace(line):
         if col >= Col: break
 
         # Convert @ to -1, otherwise convert to character code
@@ -127,14 +211,15 @@ proc cleanAscii(filename: string): string =
   try:
     var file = open(filename)
     defer: file.close()
-
     result = ""
-    while not file.endOfFile:
-      let c = uint8(file.readChar())
-      #if c >= 32 and c <= 126:
-      result.add(char(c))
+    var runes = file.readAll().toRunes
+    for c in runes:
+      if c.int >= 32 and c.int <= 126:  # ASCII printable range
+        result.add(c.toUTF8)
+      elif c.int != 10 and c.int != 13 and c.int != 9:  # Skip newline, CR, and tab
+        echo "Unicode value: ", c.int, " Character: ", $c  # Directly show the character with $c
   except IOError:
-    raise newException(IOError, "Corpus file not found, make sure the file ends in .txt. Failed to open or read file: " & filename)
+    raise newException(IOError, "Corpus file not found, make sure the file ends in .txt. Failed to open")
 
 proc rotateRight(mem: var openArray[int]) =
   ## Shifts all elements in the array one position to the right, discarding the last element.
@@ -142,11 +227,11 @@ proc rotateRight(mem: var openArray[int]) =
     mem[i] = mem[i - 1]
   mem[0] = -1  # Reset the first element
 
-proc readCorpus(corpusName: string) =
-  let path = "./data/" & "/corpora/" & corpusName & ".txt"
+proc readCorpus(langName, corpusName: string) =
+  let path = "./data/" & langName & "/" & "/corpora/" & corpusName & ".txt"
   let cleanedText = cleanAscii(path)
   var mem = @[-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
-  initCharTable()
+
   initCorpusArrays()
 
   for c in cleanedText:
@@ -198,7 +283,7 @@ proc readWeights(weightName: string) =
    let name = parts[0].strip()
    var weights: seq[float] = @[]
 
-   for token in parts[1].strip().splitWhitespace():
+   for token in strutils.splitWhitespace(parts[1].strip()):
      try:
        weights.add(parseFloat(token))
      except ValueError:
@@ -446,8 +531,8 @@ proc convertBack(i: int): char =
   ## Returns:
   ##   The character corresponding to the index, or '@' if out of bounds.
 
-  if i >= 0 and i < LangLength:
-    result = English[i * 2]  # Get lowercase version from even indices
+  if i >= 0 and i < langLength:
+    result = char(langArr[i * 2])  # Get lowercase version from even indices
   else:
     result = '@'
 

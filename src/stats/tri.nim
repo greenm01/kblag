@@ -3,14 +3,20 @@ type
 
 proc processTrigram(map: FingerMap, stat: string, op: TriOperation) =
   var triStat = TriStat(
-    ngrams: newSeq[int](),
+    ngrams: newSeq[PackedTri](),  # Now using PackedTri array[2, uint8]
     weight: -Inf
   )
-  for i in 0..<Dim3:
-    var row0, col0, row1, col1, row2, col2: int
-    unflatTri(i, row0, col0, row1, col1, row2, col2)
-    if op(map, row0, col0, row1, col1, row2, col2):
-      triStat.ngrams.add(i)
+
+  # Process all valid grid positions
+  for row0 in 0..<Row:
+    for col0 in 0..<Col:
+      for row1 in 0..<Row:
+        for col1 in 0..<Col:
+          for row2 in 0..<Row:
+            for col2 in 0..<Col:
+              if op(map, row0, col0, row1, col1, row2, col2):
+                # Pack positions into 2 bytes
+                triStat.ngrams.add(packTri(row0, col0, row1, col1, row2, col2))
 
   triStats[stat] = triStat
 

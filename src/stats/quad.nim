@@ -3,14 +3,21 @@ type
 
 proc processQuadgram(map: FingerMap, stat: string, op: QuadOperation) =
   var quadStat = QuadStat(
-    ngrams: newSeq[int](),
+    ngrams: newSeq[PackedQuad](),
     weight: -Inf
   )
-  for i in 0..<Dim4:
-    var row0, col0, row1, col1, row2, col2, row3, col3: int
-    unflatQuad(i, row0, col0, row1, col1, row2, col2, row3, col3)
-    if op(map, row0, col0, row1, col1, row2, col2, row3, col3):
-      quadStat.ngrams.add(i)
+  # Process all valid grid positions
+  for row0 in 0..<Row:
+    for col0 in 0..<Col:
+      for row1 in 0..<Row:
+        for col1 in 0..<Col:
+          for row2 in 0..<Row:
+            for col2 in 0..<Col:
+              for row3 in 0..<Row:
+                for col3 in 0..<Col:
+                  if op(map, row0, col0, row1, col1, row2, col2, row3, col3):
+                    # Pack positions into 3 bytes instead of calculating flattened index
+                    quadStat.ngrams.add(packQuad(row0, col0, row1, col1, row2, col2, row3, col3))
 
   quadStats[stat] = quadStat
 

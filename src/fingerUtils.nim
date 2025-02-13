@@ -29,7 +29,7 @@ proc newFingerMap(): FingerMap =
 proc initDefaultFingerMap(): FingerMap =
   result = newFingerMap()
 
-  # Default adjacent finger pairs - never changes
+  # Default adjacent finger pairs
   result.adjacentPairs.incl((LP, LR))
   result.adjacentPairs.incl((LR, LM))
   result.adjacentPairs.incl((LM, LI))
