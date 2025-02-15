@@ -1,5 +1,5 @@
 type
-  BiOperation = proc(map: FingerMap, row0, col0, row1, col1: int): bool {.closure.}
+  BiOperation = proc(map: FingerMap, row0, col0, row1, col1: uint8): bool {.closure.}
 
 proc processBigram(map: FingerMap, stat: string, op: BiOperation, targetFinger: Option[Finger] = none(Finger)) =
   var biStat = BiStat(
@@ -7,15 +7,15 @@ proc processBigram(map: FingerMap, stat: string, op: BiOperation, targetFinger: 
     weight: -Inf
   )
 
-  for row0 in 0..<Row:
-    for col0 in 0..<Col:
+  for row0 in countup(Row):
+    for col0 in countup(Col):
       if targetFinger.isSome:
         let f = getFinger(map, row0, col0)
         if f.isNone or f.get != targetFinger.get:
           continue
 
-      for row1 in 0..<Row:
-        for col1 in 0..<Col:
+      for row1 in countup(Row):
+        for col1 in countup(Col):
           if op(map, row0, col0, row1, col1):
             biStat.ngrams.add(packBi(row0, col0, row1, col1))
 

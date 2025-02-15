@@ -44,9 +44,9 @@ proc echoFingerMap(fm: FingerMap) =
   echo "\n=== FingerMap Debug Output ==="
 
   echo "\nAssignments Matrix:"
-  for row in 0..<Row:
+  for row in 0..<Row.int:
     var rowStr = ""
-    for col in 0..<Col:
+    for col in 0..<Col.int:
       let fingerOpt = fm.assignments[row][col]
       if fingerOpt.isSome:
         rowStr &= $fingerOpt.get & "\t"

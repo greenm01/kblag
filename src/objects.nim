@@ -1,8 +1,8 @@
 # Dimensions of the layout grid.
 const
-  Row = 3
-  Col = 12
-  Dim1 = Row * Col
+  Row = 3'u8
+  Col = 12'u8
+  Dim1 = (Row * Col).int
   Dim2 = Dim1 * Dim1
   Dim3 = Dim2 * Dim1
   Dim4 = Dim3 * Dim1
@@ -11,7 +11,7 @@ type
   # Structure for a keyboard layout and its stats.
   Layout = object
     name: string
-    matrix: array[Row, array[Col, int]]
+    matrix: array[Row.int, array[Col.int, int]]
     monoScore: Table[string, float]
     biScore: Table[string, float]
     triScore: Table[string, float]
@@ -42,7 +42,7 @@ type
 
   # Structures to represent statistics based on ngrams.
   MonoStat = object
-    ngrams: seq[int]
+    ngrams: seq[uint8]
     weight: float
 
   BiStat = object
@@ -58,7 +58,7 @@ type
     weight: float
 
   SkipStat = object
-    ngrams: seq[int]
+    ngrams: seq[PackedBi]
     weight: seq[float]  # Multiple weights for skip-X-grams
 
   # Structure to represent a meta statistic.

@@ -1,5 +1,5 @@
 type
-  TriOperation = proc(map: FingerMap, row0, col0, row1, col1, row2, col2: int): bool {.closure.}
+  TriOperation = proc(map: FingerMap, row0, col0, row1, col1, row2, col2: uint8): bool {.closure.}
 
 proc processTrigram(map: FingerMap, stat: string, op: TriOperation) =
   var triStat = TriStat(
@@ -8,12 +8,12 @@ proc processTrigram(map: FingerMap, stat: string, op: TriOperation) =
   )
 
   # Process all valid grid positions
-  for row0 in 0..<Row:
-    for col0 in 0..<Col:
-      for row1 in 0..<Row:
-        for col1 in 0..<Col:
-          for row2 in 0..<Row:
-            for col2 in 0..<Col:
+  for row0 in countup(Row):
+    for col0 in countup(Col):
+      for row1 in countup(Row):
+        for col1 in countup(Col):
+          for row2 in countup(Row):
+            for col2 in countup(Col):
               if op(map, row0, col0, row1, col1, row2, col2):
                 # Pack positions into 2 bytes
                 triStat.ngrams.add(packTri(row0, col0, row1, col1, row2, col2))
@@ -24,7 +24,7 @@ proc initializeTrigramStats(map: FingerMap) =
   # Helper template to reduce repetition
   template addTrigram(name: string, checker: untyped) =
     processTrigram(map, name,
-      proc(map: FingerMap, row0, col0, row1, col1, row2, col2: int): bool =
+      proc(map: FingerMap, row0, col0, row1, col1, row2, col2: uint8): bool =
         checker(map, row0, col0, row1, col1, row2, col2))
 
   # Basic trigrams

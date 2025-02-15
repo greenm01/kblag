@@ -3,7 +3,7 @@ addHandler(newConsoleLogger(fmtStr = "$datetime | $levelname | "))
 setLogFilter(lvlDebug)  # Set the minimum log level
 
 type LayoutConfig = object
-  matrix: array[Row, array[Col, int]]
+  matrix: array[Row.int, array[Col.int, int]]
   name: string
 
 type
@@ -78,6 +78,10 @@ proc readLang(langName: string) =
 
   langLength = (charTable.len - 1) div 2
 
+  mul1 = langLength
+  mul2 = langLength * langLength
+  mul3 = langLength * langLength * langLength
+
 proc getCharCode(c: Rune): int =
   ## Gets the position code for a character in the language.
   ## Returns -1 if the character is not in the language.
@@ -93,13 +97,13 @@ proc readLayoutConfig(layoutName: string): LayoutConfig =
     let file = open(path)
     defer: file.close()
 
-    var row = 0
+    var row: int = 0
     for line in file.lines:
-      if row >= Row: break
+      if row >= Row.int: break
 
-      var col = 0
+      var col: int = 0
       for c in strutils.splitWhitespace(line):
-        if col >= Col: break
+        if col >= Col.int: break
 
         # Convert @ to -1, otherwise convert to character code
         if c == "@":
@@ -136,15 +140,15 @@ proc readFingerMap(path: string): FingerMap =
   let assignments = config["fingerAssignments"]
 
   # Validate array dimensions exactly match Row x Col
-  if assignments.len != Row:
-    raise newException(ValueError, "Expected " & $Row & " rows, got " & $assignments.len)
+  if assignments.len != Row.int:
+    raise newException(ValueError, "Expected " & $Row.int & " rows, got " & $assignments.len)
 
-  for row in 0..<Row:
-    if assignments[row].len != Col:
-      raise newException(ValueError, "Row " & $row & " expected " & $Col &
+  for row in 0..<Row.int:
+    if assignments[row].len != Col.int:
+      raise newException(ValueError, "Row " & $row & " expected " & $Col.int &
                         " columns, got " & $assignments[row].len)
 
-    for col in 0..<Col:
+    for col in 0..<Col.int:
       let fingerStr = assignments[row][col].getStr()
       if fingerStr == "@":
         result.assignments[row][col] = none(Finger)
@@ -168,11 +172,11 @@ proc readLayout(layoutName: string): Layout =
 
     var row = 0
     for line in file.lines:
-      if row >= Row: break
+      if row >= Row.int: break
 
       var col = 0
       for c in strutils.splitWhitespace(line):
-        if col >= Col: break
+        if col >= Col.int: break
 
         # Convert @ to -1, otherwise convert to character code
         if c == "@":

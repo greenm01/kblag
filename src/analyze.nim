@@ -1,67 +1,84 @@
 proc singleAnalyze(lt: var Layout, map: var FingerMap) =
-  var
-    row0, col0, row1, col1, row2, col2, row3, col3: int
-
   # Calculate monogram statistics
   for name, stat in monoStats:
+    var score = 0.0
     for ngram in stat.ngrams:
-      unflatMono(ngram, row0, col0)
-      if lt.matrix[row0][col0] != -1:
-        let index = indexMono(lt.matrix[row0][col0])
-        lt.monoScore[name] += linearMono[index]
+      let key = lt.matrix[(ngram div Col).int][(ngram mod Col).int]
+      if key != -1:
+        score += linearMono[key]
+    lt.monoScore[name] += score
 
   # Calculate bigram statistics
   for name, stat in biStats:
+    var score = 0.0
     for packed in stat.ngrams:
-      var row0, col0, row1, col1: int
-      unpackBi(packed, row0, col0, row1, col1)
+      let byte0 = packed[0]
+      let byte1 = packed[1]
 
-      let key1 = lt.matrix[row0][col0]
-      let key2 = lt.matrix[row1][col1]
+      # Direct matrix lookups using unpacked bits
+      let key1 = lt.matrix[(byte0 shr 6).int][(byte0 shr 2 and 0xF'u8).int]
+      let key2 = lt.matrix[(byte0 and 0x3'u8).int][(byte1 shr 4).int]
 
       if key1 != -1 and key2 != -1:
-        let index = indexBi(key1, key2)
-        lt.biScore[name] += linearBi[index]
+        score += linearBi[key1 * mul1 + key2]
+    lt.biScore[name] += score
 
   # Calculate trigram statistics
   for name, stat in triStats:
+    var score = 0.0
     for packed in stat.ngrams:
-      var row0, col0, row1, col1, row2, col2: int
-      unpackTri(packed, row0, col0, row1, col1, row2, col2)
-      #echo row0, ",", col0, ":", row1, ",", col1, ":", row2, ",", col2
-      let key1 = lt.matrix[row0][col0]
-      let key2 = lt.matrix[row1][col1]
-      let key3 = lt.matrix[row2][col2]
+      let byte0 = packed[0]
+      let byte1 = packed[1]
+      let byte2 = packed[2]
+
+      # Direct matrix lookups
+      let key1 = lt.matrix[(byte0 shr 6).int][(byte0 shr 2 and 0xF'u8).int]
+      let key2 = lt.matrix[(byte0 and 0x3'u8).int][(byte1 shr 4).int]
+      let key3 = lt.matrix[(byte1 shr 2 and 0x3'u8).int][((byte1 and 0x3'u8) shl 2 or (byte2 shr 6)).int]
 
       if key1 != -1 and key2 != -1 and key3 != -1:
-        let index = indexTri(key1, key2, key3)
-        lt.triScore[name] += linearTri[index]
+        score += linearTri[key1 * mul2 + key2 * mul1 + key3]
+    lt.triScore[name] += score
 
   # Calculate quadgram statistics
   for name, stat in quadStats:
+    var score = 0.0
     for packed in stat.ngrams:
-      var row0, col0, row1, col1, row2, col2, row3, col3: int
-      unpackQuad(packed, row0, col0, row1, col1, row2, col2, row3, col3)
+      let byte0 = packed[0]
+      let byte1 = packed[1]
+      let byte2 = packed[2]
 
-      let key1 = lt.matrix[row0][col0]
-      let key2 = lt.matrix[row1][col1]
-      let key3 = lt.matrix[row2][col2]
-      let key4 = lt.matrix[row3][col3]
+      # Direct matrix lookups
+      let key1 = lt.matrix[(byte0 shr 6).int][(byte0 shr 2 and 0xF'u8).int]
+      let key2 = lt.matrix[(byte0 and 0x3'u8).int][(byte1 shr 4).int]
+      let key3 = lt.matrix[(byte1 shr 2 and 0x3'u8).int][((byte1 and 0x3'u8) shl 2 or (byte2 shr 6)).int]
+      let key4 = lt.matrix[(byte2 shr 4 and 0x3'u8).int][(byte2 and 0xF'u8).int]
 
       if key1 != -1 and key2 != -1 and key3 != -1 and key4 != -1:
-        let index = indexQuad(key1, key2, key3, key4)
-        lt.quadScore[name] += linearQuad[index]
+        score += linearQuad[key1 * mul3 + key2 * mul2 + key3 * mul1 + key4]
+    lt.quadScore[name] += score
 
   # Calculate skipgram statistics
   for name, stat in skipStats:
-    for k in 0..<SkipLength:
-      for ngram in stat.ngrams:
-        unflatBi(ngram, row0, col0, row1, col1)
-        if lt.matrix[row0][col0] != -1 and lt.matrix[row1][col1] != -1:
-          let index = indexSkip(k, lt.matrix[row0][col0], lt.matrix[row1][col1])
-          lt.skipScore[name][k] += linearSkip[index]
+    var scores: array[SkipLength, float]
+    for packed in stat.ngrams:
+      # Direct bit manipulation for unpacking
+      let byte0 = packed[0]
+      let byte1 = packed[1]
 
-  # Perform meta-analysis, which may depend on previously calculated statistics.
+      # Direct matrix lookups
+      let key1 = lt.matrix[(byte0 shr 6).int][(byte0 shr 2 and 0xF'u8).int]
+      let key2 = lt.matrix[(byte0 and 0x3'u8).int][(byte1 shr 4).int]
+
+      if key1 != -1 and key2 != -1:
+        for k in 0..<SkipLength:
+          scores[k] += linearSkip[k * mul2 + key1 * mul1 + key2]
+
+    # Update all skip scores at once
+    for k in 0..<SkipLength:
+      lt.skipScore[name][k] += scores[k]
+
+  # Perform meta-analysis
   metaAnalysis(lt, map)
 
 proc calcLayoutScore(lt: var Layout) =
@@ -88,20 +105,20 @@ proc calcLayoutScore(lt: var Layout) =
       lt.score += lt.metaScore.get() * metaStat.weight
 
 proc analyzeLayout(layout: string, map: var FingerMap) =
-  let startTime = cpuTime()
 
   info("Reading layout")
-  # TODO: specify on command line
   var lt = readLayout(layout)
 
   info("Calculating layout scores")
-  singleAnalyze(lt, map)
-  calcLayoutScore(lt)
 
+  let startTime = cpuTime()
+  singleAnalyze(lt, map)
   let endTime = cpuTime()
+
   let elapsedComputeTime = (endTime - startTime) * 1000
   info("Total layout analysis time: ", elapsedComputeTime, " ms")
 
+  calcLayoutScore(lt)
   printLayout(lt)
 
   logLayoutsPerSecond(1.0, elapsedComputeTime)
