@@ -99,7 +99,9 @@ proc analyzeLayout(layout: string, map: var FingerMap) =
   calcLayoutScore(lt)
 
   let endTime = cpuTime()
-  let elapsedTimeMs = (endTime - startTime) * 1000
-  info("Total layout analysis time: ", elapsedTimeMs, " ms")
+  let elapsedComputeTime = (endTime - startTime) * 1000
+  info("Total layout analysis time: ", elapsedComputeTime, " ms")
 
   printLayout(lt)
+
+  logLayoutsPerSecond(1.0, elapsedComputeTime)

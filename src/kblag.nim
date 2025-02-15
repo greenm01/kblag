@@ -13,6 +13,7 @@ proc main() =
   var corpus = "monkey0-7_IanDouglas"
   var layout = "hiyou"
   var config = "config"
+  var weights = "benchmark"
 
   info "Reading language file"
   readLang(lang)
@@ -32,7 +33,7 @@ proc main() =
   normalizeCorpus()
 
   info("Reading and assigning scoring weights")
-  readWeights("default")
+  readWeights(weights)
 
   info("Cleaning stats")
   cleanStats()

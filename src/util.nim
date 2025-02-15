@@ -1,3 +1,7 @@
+proc logLayoutsPerSecond(layoutsAnalyzed: float64, elapsedMs: float64) =
+  let elapsedSeconds = elapsedMs / 1000.0
+  echo "\nLayouts per second........................: ", formatFloat(layoutsAnalyzed / elapsedSeconds, ffDecimal, 6)
+
 proc packBi(row0, col0, row1, col1: int): PackedBi {.inline.} =
  assert row0 in 0..2 and row1 in 0..2
  assert col0 in 0..11 and col1 in 0..11
