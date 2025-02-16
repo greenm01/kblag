@@ -1,9 +1,12 @@
-import os, strutils, tables, sets, options, logging, times, math, sequtils, algorithm, unicode
+import
+  os, strutils, tables, sets, options, logging, times, math, sequtils, algorithm,
+  unicode
 
-include global, objects, util, fingerUtils, io, bigramAnalysis, trigramAnalysis, quadgramAnalysis, skipgramAnalysis, stats, analyze, log
+include
+  global, objects, util, fingerUtils, io, bigramAnalysis, trigramAnalysis,
+  quadgramAnalysis, skipgramAnalysis, stats, analyze, log
 
 proc main() =
-
   #testBigramEquivalence()
   #testTrigramEquivalence()
   #testQuadgramEquivalence()

@@ -1,10 +1,10 @@
-type
-  TriOperation = proc(map: FingerMap, row0, col0, row1, col1, row2, col2: uint8): bool {.closure.}
+type TriOperation =
+  proc(map: FingerMap, row0, col0, row1, col1, row2, col2: uint8): bool {.closure.}
 
 proc processTrigram(map: FingerMap, stat: string, op: TriOperation) =
   var triStat = TriStat(
-    ngrams: newSeq[PackedTri](),  # Now using PackedTri array[2, uint8]
-    weight: -Inf
+    ngrams: newSeq[PackedTri](), # Now using PackedTri array[2, uint8]
+    weight: -Inf,
   )
 
   # Process all valid grid positions
@@ -23,9 +23,12 @@ proc processTrigram(map: FingerMap, stat: string, op: TriOperation) =
 proc initializeTrigramStats(map: FingerMap) =
   # Helper template to reduce repetition
   template addTrigram(name: string, checker: untyped) =
-    processTrigram(map, name,
+    processTrigram(
+      map,
+      name,
       proc(map: FingerMap, row0, col0, row1, col1, row2, col2: uint8): bool =
-        checker(map, row0, col0, row1, col1, row2, col2))
+        checker(map, row0, col0, row1, col1, row2, col2),
+    )
 
   # Basic trigrams
   addTrigram("Same Finger Trigram", isSameFingerTri)

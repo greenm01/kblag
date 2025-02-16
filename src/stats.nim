@@ -21,7 +21,7 @@ proc initializeStats(map: var FingerMap) =
 
 # Function to remove entries with zero weight
 proc removeZeroWeights[T](stats: var Table[string, T]) =
-  var keysToDelete: seq[string] = @[]  # Collect keys to delete
+  var keysToDelete: seq[string] = @[] # Collect keys to delete
   for key in stats.keys:
     if stats[key].weight == 0 or stats[key].ngrams.len == 0:
       keysToDelete.add(key)
@@ -31,7 +31,7 @@ proc removeZeroWeights[T](stats: var Table[string, T]) =
 
 # Special handling for SkipStat (since it has a sequence of weights)
 proc removeZeroWeightsSkip(stats: var Table[string, SkipStat]) =
-  var keysToDelete: seq[string] = @[]  # Collect keys to delete
+  var keysToDelete: seq[string] = @[] # Collect keys to delete
   for key in stats.keys:
     var allZero = true
     for w in stats[key].weight:

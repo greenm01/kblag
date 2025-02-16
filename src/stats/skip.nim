@@ -1,13 +1,15 @@
-type
-  SkipOperation = proc(map: FingerMap, row0, col0, row1, col1: uint8): bool {.closure.}
+type SkipOperation =
+  proc(map: FingerMap, row0, col0, row1, col1: uint8): bool {.closure.}
 
-proc processSkipgram(map: FingerMap, stat: string, op: SkipOperation, targetFinger: Option[Finger] = none(Finger)) =
-  var skipStat = SkipStat(
-    ngrams: newSeq[PackedBi](),
-    weight: newSeq[float](SkipLength)
-  )
+proc processSkipgram(
+    map: FingerMap,
+    stat: string,
+    op: SkipOperation,
+    targetFinger: Option[Finger] = none(Finger),
+) =
+  var skipStat = SkipStat(ngrams: newSeq[PackedBi](), weight: newSeq[float](SkipLength))
   # Initialize weights
-  for i in 0..<SkipLength:
+  for i in 0 ..< SkipLength:
     skipStat.weight[i] = -Inf
 
   for row0 in countup(Row):
@@ -33,7 +35,7 @@ proc initializeSkipgramStats(map: FingerMap) =
       RI: "Right Index Skipgram",
       RM: "Right Middle Skipgram",
       RR: "Right Ring Skipgram",
-      RP: "Right Pinky Skipgram"
+      RP: "Right Pinky Skipgram",
     }.toTable
 
     badFingerNames = {
@@ -44,29 +46,41 @@ proc initializeSkipgramStats(map: FingerMap) =
       RI: "Bad Right Index Skipgram",
       RM: "Bad Right Middle Skipgram",
       RR: "Bad Right Ring Skipgram",
-      RP: "Bad Right Pinky Skipgram"
+      RP: "Bad Right Pinky Skipgram",
     }.toTable
 
   # Same Finger Skipgram
-  processSkipgram(map, "Same Finger Skipgram",
+  processSkipgram(
+    map,
+    "Same Finger Skipgram",
     proc(map: FingerMap, row0, col0, row1, col1: uint8): bool {.closure.} =
-      isSameFingerSkip(map, 0, row0, col0, row1, col1))
+      isSameFingerSkip(map, 0, row0, col0, row1, col1),
+  )
 
   # Per Finger Skipgrams
   for finger in Finger:
-    processSkipgram(map, fingerNames[finger],
+    processSkipgram(
+      map,
+      fingerNames[finger],
       proc(map: FingerMap, row0, col0, row1, col1: uint8): bool {.closure.} =
         isSameFingerSkip(map, 0, row0, col0, row1, col1),
-      some(finger))
+      some(finger),
+    )
 
   # Bad Same Finger Skipgram
-  processSkipgram(map, "Bad Same Finger Skipgram",
+  processSkipgram(
+    map,
+    "Bad Same Finger Skipgram",
     proc(map: FingerMap, row0, col0, row1, col1: uint8): bool {.closure.} =
-      isBadSameFingerSkip(map, 0, row0, col0, row1, col1))
+      isBadSameFingerSkip(map, 0, row0, col0, row1, col1),
+  )
 
   # Per Finger Bad Skipgrams
   for finger in Finger:
-    processSkipgram(map, badFingerNames[finger],
+    processSkipgram(
+      map,
+      badFingerNames[finger],
       proc(map: FingerMap, row0, col0, row1, col1: uint8): bool {.closure.} =
         isBadSameFingerSkip(map, 0, row0, col0, row1, col1),
-      some(finger))
+      some(finger),
+    )

@@ -34,7 +34,9 @@ proc singleAnalyze(lt: var Layout, map: var FingerMap) =
       # Direct matrix lookups
       let key1 = lt.matrix[(byte0 shr 6).int][(byte0 shr 2 and 0xF'u8).int]
       let key2 = lt.matrix[(byte0 and 0x3'u8).int][(byte1 shr 4).int]
-      let key3 = lt.matrix[(byte1 shr 2 and 0x3'u8).int][((byte1 and 0x3'u8) shl 2 or (byte2 shr 6)).int]
+      let key3 = lt.matrix[(byte1 shr 2 and 0x3'u8).int][
+        ((byte1 and 0x3'u8) shl 2 or (byte2 shr 6)).int
+      ]
 
       if key1 != -1 and key2 != -1 and key3 != -1:
         score += linearTri[key1 * mul2 + key2 * mul1 + key3]
@@ -51,7 +53,9 @@ proc singleAnalyze(lt: var Layout, map: var FingerMap) =
       # Direct matrix lookups
       let key1 = lt.matrix[(byte0 shr 6).int][(byte0 shr 2 and 0xF'u8).int]
       let key2 = lt.matrix[(byte0 and 0x3'u8).int][(byte1 shr 4).int]
-      let key3 = lt.matrix[(byte1 shr 2 and 0x3'u8).int][((byte1 and 0x3'u8) shl 2 or (byte2 shr 6)).int]
+      let key3 = lt.matrix[(byte1 shr 2 and 0x3'u8).int][
+        ((byte1 and 0x3'u8) shl 2 or (byte2 shr 6)).int
+      ]
       let key4 = lt.matrix[(byte2 shr 4 and 0x3'u8).int][(byte2 and 0xF'u8).int]
 
       if key1 != -1 and key2 != -1 and key3 != -1 and key4 != -1:
@@ -71,11 +75,11 @@ proc singleAnalyze(lt: var Layout, map: var FingerMap) =
       let key2 = lt.matrix[(byte0 and 0x3'u8).int][(byte1 shr 4).int]
 
       if key1 != -1 and key2 != -1:
-        for k in 0..<SkipLength:
+        for k in 0 ..< SkipLength:
           scores[k] += linearSkip[k * mul2 + key1 * mul1 + key2]
 
     # Update all skip scores at once
-    for k in 0..<SkipLength:
+    for k in 0 ..< SkipLength:
       lt.skipScore[name][k] += scores[k]
 
   # Perform meta-analysis
@@ -97,15 +101,14 @@ proc calcLayoutScore(lt: var Layout) =
     lt.score += lt.quadScore[name] * stat.weight
 
   for name, stat in skipStats:
-    for k in 0..<SkipLength:
+    for k in 0 ..< SkipLength:
       lt.score += lt.skipScore[name][k] * stat.weight[k]
 
   for name, metaStat in metaStats:
-    if lt.metaScore.isSome:  # Check if we have a valid meta score
+    if lt.metaScore.isSome: # Check if we have a valid meta score
       lt.score += lt.metaScore.get() * metaStat.weight
 
 proc analyzeLayout(layout: string, map: var FingerMap) =
-
   info("Reading layout")
   var lt = readLayout(layout)
 

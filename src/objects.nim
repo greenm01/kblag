@@ -59,7 +59,7 @@ type
 
   SkipStat = object
     ngrams: seq[PackedBi]
-    weight: seq[float]  # Multiple weights for skip-X-grams
+    weight: seq[float] # Multiple weights for skip-X-grams
 
   # Structure to represent a meta statistic.
   MetaStat = object

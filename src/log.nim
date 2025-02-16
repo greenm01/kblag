@@ -5,38 +5,38 @@ proc logCharTable() =
 
 proc logCorpusMono() =
   echo "corpusMono:"
-  for i in 0..<langLength:
+  for i in 0 ..< langLength:
     echo "Index ", i, ": ", corpusMono[i]
 
 proc logCorpusBi() =
   echo "corpusBi:"
-  for i in 0..<langLength:
-    for j in 0..<langLength:
+  for i in 0 ..< langLength:
+    for j in 0 ..< langLength:
       if corpusBi[i][j] > 0:
         echo "(", i, ", ", j, ") -> ", corpusBi[i][j]
 
 proc logCorpusTri() =
   echo "corpusTri:"
-  for i in 0..<langLength:
-    for j in 0..<langLength:
-      for k in 0..<langLength:
+  for i in 0 ..< langLength:
+    for j in 0 ..< langLength:
+      for k in 0 ..< langLength:
         if corpusTri[i][j][k] > 0:
           echo "(", i, ", ", j, ", ", k, ") -> ", corpusTri[i][j][k]
 
 proc logCorpusQuad() =
   echo "corpusQuad:"
-  for i in 0..<langLength:
-    for j in 0..<langLength:
-      for k in 0..<langLength:
-        for l in 0..<langLength:
+  for i in 0 ..< langLength:
+    for j in 0 ..< langLength:
+      for k in 0 ..< langLength:
+        for l in 0 ..< langLength:
           if corpusQuad[i][j][k][l] > 0:
             echo "(", i, ", ", j, ", ", k, ", ", l, ") -> ", corpusQuad[i][j][k][l]
 
 proc logCorpusSkip() =
   echo "corpusSkip:"
-  for skip in 0..<SkipLength:
-    for i in 0..<langLength:
-      for j in 0..<langLength:
+  for skip in 0 ..< SkipLength:
+    for i in 0 ..< langLength:
+      for j in 0 ..< langLength:
         if corpusSkip[skip][i][j] > 0:
           echo "Skip ", skip, " (", i, ", ", j, ") -> ", corpusSkip[skip][i][j]
 
@@ -44,9 +44,9 @@ proc echoFingerMap(fm: FingerMap) =
   echo "\n=== FingerMap Debug Output ==="
 
   echo "\nAssignments Matrix:"
-  for row in 0..<Row.int:
+  for row in 0 ..< Row.int:
     var rowStr = ""
-    for col in 0..<Col.int:
+    for col in 0 ..< Col.int:
       let fingerOpt = fm.assignments[row][col]
       if fingerOpt.isSome:
         rowStr &= $fingerOpt.get & "\t"

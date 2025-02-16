@@ -1,6 +1,7 @@
 proc logLayoutsPerSecond(layoutsAnalyzed: float64, elapsedMs: float64) =
   let elapsedSeconds = elapsedMs / 1000.0
-  echo "\nLayouts per second........................: ", formatFloat(layoutsAnalyzed / elapsedSeconds, ffDecimal, 6)
+  echo "\nLayouts per second........................: ",
+    formatFloat(layoutsAnalyzed / elapsedSeconds, ffDecimal, 6)
 
 iterator countup(b: uint8): uint8 =
   ## Fast countup for uint8 avoiding integer promotion
@@ -30,7 +31,9 @@ proc packTri(row0, col0, row1, col1, row2, col2: uint8): PackedTri {.inline.} =
   result[1] = (col1 shl 4) or (row2 shl 2) or (col2 shr 2)
   result[2] = (col2 and 0x3'u8) shl 6
 
-proc unpackTri(packed: PackedTri, row0, col0, row1, col1, row2, col2: var uint8) {.inline.} =
+proc unpackTri(
+    packed: PackedTri, row0, col0, row1, col1, row2, col2: var uint8
+) {.inline.} =
   let byte0 = packed[0]
   let byte1 = packed[1]
   let byte2 = packed[2]
@@ -43,14 +46,18 @@ proc unpackTri(packed: PackedTri, row0, col0, row1, col1, row2, col2: var uint8)
   let col2_lo = byte2 shr 6
   col2 = (col2_hi shl 2) or col2_lo
 
-proc packQuad(row0, col0, row1, col1, row2, col2, row3, col3: uint8): PackedQuad {.inline.} =
+proc packQuad(
+    row0, col0, row1, col1, row2, col2, row3, col3: uint8
+): PackedQuad {.inline.} =
   assert row0 <= Row and row1 <= Row and row2 <= Row and row3 <= Row
   assert col0 < Col and col1 < Col and col2 < Col and col3 < Col
   result[0] = (row0 shl 6) or (col0 shl 2) or row1
   result[1] = (col1 shl 4) or (row2 shl 2) or (col2 shr 2)
   result[2] = ((col2 and 0x3'u8) shl 6) or (row3 shl 4) or col3
 
-proc unpackQuad(packed: PackedQuad, row0, col0, row1, col1, row2, col2, row3, col3: var uint8) {.inline.} =
+proc unpackQuad(
+    packed: PackedQuad, row0, col0, row1, col1, row2, col2, row3, col3: var uint8
+) {.inline.} =
   let byte0 = packed[0]
   let byte1 = packed[1]
   let byte2 = packed[2]
@@ -66,14 +73,18 @@ proc unpackQuad(packed: PackedQuad, row0, col0, row1, col1, row2, col2, row3, co
   col3 = byte2 and 0xF'u8
 
 # --- Quad (8D) operations ---
-proc flatQuad(row0, col0, row1, col1, row2, col2, row3, col3: int, i: var int) {.inline.} =
+proc flatQuad(
+    row0, col0, row1, col1, row2, col2, row3, col3: int, i: var int
+) {.inline.} =
   let pos0 = row0 * Col.int + col0
   let pos1 = row1 * Col.int + col1
   let pos2 = row2 * Col.int + col2
   let pos3 = row3 * Col.int + col3
   i = pos0 * Dim3 + pos1 * Dim2 + pos2 * Dim1 + pos3
 
-proc unflatQuad(i: int, row0, col0, row1, col1, row2, col2, row3, col3: var int) {.inline.} =
+proc unflatQuad(
+    i: int, row0, col0, row1, col1, row2, col2, row3, col3: var int
+) {.inline.} =
   # Bottom level (row3, col3)
   let i3 = i mod Dim1
   row3 = i3 div Col.int
@@ -188,54 +199,54 @@ proc normalizeCorpus() =
   var totalSkip: array[SkipLength, int] = [0, 0, 0, 0, 0, 0, 0, 0, 0]
 
   # Calculate totals
-  for i in 0..<langLength:
+  for i in 0 ..< langLength:
     totalMono += corpusMono[i]
-    for j in 0..<langLength:
+    for j in 0 ..< langLength:
       totalBi += corpusBi[i][j]
-      for k in 0..<langLength:
+      for k in 0 ..< langLength:
         totalTri += corpusTri[i][j][k]
-        for l in 0..<langLength:
+        for l in 0 ..< langLength:
           totalQuad += corpusQuad[i][j][k][l]
 
-  for i in 0..<SkipLength:
-    for j in 0..<langLength:
-      for k in 0..<langLength:
+  for i in 0 ..< SkipLength:
+    for j in 0 ..< langLength:
+      for k in 0 ..< langLength:
         totalSkip[i] += corpusSkip[i][j][k]
 
   # Normalize monograms
   if totalMono > 0:
-    for i in 0..<langLength:
+    for i in 0 ..< langLength:
       linearMono[indexMono(i)] = corpusMono[i].float * 100.0 / totalMono.float
 
   # Normalize bigrams
   if totalBi > 0:
-    for i in 0..<langLength:
-      for j in 0..<langLength:
-        linearBi[indexBi(i,j)] = corpusBi[i][j].float * 100.0 / totalBi.float
+    for i in 0 ..< langLength:
+      for j in 0 ..< langLength:
+        linearBi[indexBi(i, j)] = corpusBi[i][j].float * 100.0 / totalBi.float
 
   # Normalize trigrams
   if totalTri > 0:
-    for i in 0..<langLength:
-      for j in 0..<langLength:
-        for k in 0..<langLength:
-          linearTri[indexTri(i,j,k)] =
+    for i in 0 ..< langLength:
+      for j in 0 ..< langLength:
+        for k in 0 ..< langLength:
+          linearTri[indexTri(i, j, k)] =
             corpusTri[i][j][k].float * 100.0 / totalTri.float
 
   # Normalize quadgrams
   if totalQuad > 0:
-    for i in 0..<langLength:
-      for j in 0..<langLength:
-        for k in 0..<langLength:
-          for l in 0..<langLength:
-            linearQuad[indexQuad(i,j,k,l)] =
+    for i in 0 ..< langLength:
+      for j in 0 ..< langLength:
+        for k in 0 ..< langLength:
+          for l in 0 ..< langLength:
+            linearQuad[indexQuad(i, j, k, l)] =
               corpusQuad[i][j][k][l].float * 100.0 / totalQuad.float
 
   # Normalize skipgrams
-  for i in 0..<SkipLength:
+  for i in 0 ..< SkipLength:
     if totalSkip[i] > 0:
-      for j in 0..<langLength:
-        for k in 0..<langLength:
-          linearSkip[indexSkip(i,j,k)] =
+      for j in 0 ..< langLength:
+        for k in 0 ..< langLength:
+          linearSkip[indexSkip(i, j, k)] =
             corpusSkip[i][j][k].float * 100.0 / totalSkip[i].float
 
 proc testBigramEquivalence() =
@@ -263,12 +274,14 @@ proc testBigramEquivalence() =
 
           # Compare
           if flat_row0 != pack_row0.int or flat_col0 != pack_col0.int or
-            flat_row1 != pack_row1.int or flat_col1 != pack_col1.int:
+              flat_row1 != pack_row1.int or flat_col1 != pack_col1.int:
             inc mismatches
             echo "Input: (", row0, ",", col0, ",", row1, ",", col1, ")"
             echo "Original flat index: ", flat_i
-            echo "Original result: ", flat_row0, ",", flat_col0, ":", flat_row1, ",", flat_col1
-            echo "Bit packed result: ", pack_row0, ",", pack_col0, ":", pack_row1, ",", pack_col1
+            echo "Original result: ",
+              flat_row0, ",", flat_col0, ":", flat_row1, ",", flat_col1
+            echo "Bit packed result: ",
+              pack_row0, ",", pack_col0, ":", pack_row1, ",", pack_col1
             echo "---"
 
   echo "Tested ", total, " combinations"
@@ -292,22 +305,33 @@ proc testTrigramEquivalence() =
               inc total
 
               # Original flattened method
-              flatTri(row0.int, col0.int, row1.int, col1.int, row2.int, col2.int, flat_i)
-              unflatTri(flat_i, flat_row0, flat_col0, flat_row1, flat_col1, flat_row2, flat_col2)
+              flatTri(
+                row0.int, col0.int, row1.int, col1.int, row2.int, col2.int, flat_i
+              )
+              unflatTri(
+                flat_i, flat_row0, flat_col0, flat_row1, flat_col1, flat_row2, flat_col2
+              )
 
               # New bit packed method
               let packed = packTri(row0, col0, row1, col1, row2, col2)
-              unpackTri(packed, pack_row0, pack_col0, pack_row1, pack_col1, pack_row2, pack_col2)
+              unpackTri(
+                packed, pack_row0, pack_col0, pack_row1, pack_col1, pack_row2, pack_col2
+              )
 
               # Compare
               if flat_row0 != pack_row0.int or flat_col0 != pack_col0.int or
-                flat_row1 != pack_row1.int or flat_col1 != pack_col1.int or
-                flat_row2 != pack_row2.int or flat_col2 != pack_col2.int:
+                  flat_row1 != pack_row1.int or flat_col1 != pack_col1.int or
+                  flat_row2 != pack_row2.int or flat_col2 != pack_col2.int:
                 inc mismatches
-                echo "Input: (", row0, ",", col0, ",", row1, ",", col1, ",", row2, ",", col2, ")"
+                echo "Input: (",
+                  row0, ",", col0, ",", row1, ",", col1, ",", row2, ",", col2, ")"
                 echo "Original flat index: ", flat_i
-                echo "Original result: ", flat_row0, ",", flat_col0, ":", flat_row1, ",", flat_col1, ":", flat_row2, ",", flat_col2
-                echo "Bit packed result: ", pack_row0, ",", pack_col0, ":", pack_row1, ",", pack_col1, ":", pack_row2, ",", pack_col2
+                echo "Original result: ",
+                  flat_row0, ",", flat_col0, ":", flat_row1, ",", flat_col1, ":",
+                  flat_row2, ",", flat_col2
+                echo "Bit packed result: ",
+                  pack_row0, ",", pack_col0, ":", pack_row1, ",", pack_col1, ":",
+                  pack_row2, ",", pack_col2
                 echo "---"
 
   echo "Tested ", total, " combinations"
@@ -335,14 +359,21 @@ proc testQuadgramEquivalence() =
                   inc total
 
                   # Original flattened method
-                  flatQuad(row0.int, col0.int, row1.int, col1.int, row2.int, col2.int, row3.int, col3.int, flat_i)
-                  unflatQuad(flat_i, flat_row0, flat_col0, flat_row1, flat_col1,
-                            flat_row2, flat_col2, flat_row3, flat_col3)
+                  flatQuad(
+                    row0.int, col0.int, row1.int, col1.int, row2.int, col2.int,
+                    row3.int, col3.int, flat_i,
+                  )
+                  unflatQuad(
+                    flat_i, flat_row0, flat_col0, flat_row1, flat_col1, flat_row2,
+                    flat_col2, flat_row3, flat_col3,
+                  )
 
                   # New bit packed method
                   let packed = packQuad(row0, col0, row1, col1, row2, col2, row3, col3)
-                  unpackQuad(packed, pack_row0, pack_col0, pack_row1, pack_col1,
-                            pack_row2, pack_col2, pack_row3, pack_col3)
+                  unpackQuad(
+                    packed, pack_row0, pack_col0, pack_row1, pack_col1, pack_row2,
+                    pack_col2, pack_row3, pack_col3,
+                  )
 
                   # Compare results
                   if flat_row0 != pack_row0.int or flat_col0 != pack_col0.int or
@@ -350,21 +381,24 @@ proc testQuadgramEquivalence() =
                       flat_row2 != pack_row2.int or flat_col2 != pack_col2.int or
                       flat_row3 != pack_row3.int or flat_col3 != pack_col3.int:
                     inc mismatches
-                    echo "Input: (", row0, ",", col0, ",", row1, ",", col1, ",",
-                                      row2, ",", col2, ",", row3, ",", col3, ")"
+                    echo "Input: (",
+                      row0, ",", col0, ",", row1, ",", col1, ",", row2, ",", col2, ",",
+                      row3, ",", col3, ")"
                     echo "Original flat index: ", flat_i
-                    echo "Original result: ", flat_row0, ",", flat_col0, ":",
-                                              flat_row1, ",", flat_col1, ":",
-                                              flat_row2, ",", flat_col2, ":",
-                                              flat_row3, ",", flat_col3
-                    echo "Bit packed result: ", pack_row0, ",", pack_col0, ":",
-                                              pack_row1, ",", pack_col1, ":",
-                                              pack_row2, ",", pack_col2, ":",
-                                              pack_row3, ",", pack_col3
+                    echo "Original result: ",
+                      flat_row0, ",", flat_col0, ":", flat_row1, ",", flat_col1, ":",
+                      flat_row2, ",", flat_col2, ":", flat_row3, ",", flat_col3
+                    echo "Bit packed result: ",
+                      pack_row0, ",", pack_col0, ":", pack_row1, ",", pack_col1, ":",
+                      pack_row2, ",", pack_col2, ":", pack_row3, ",", pack_col3
                     # Show hex values instead of binary
-                    echo "Packed bytes: [0x", toHex(packed[0]), "] [0x",
-                                                toHex(packed[1]), "] [0x",
-                                                toHex(packed[2]), "]"
+                    echo "Packed bytes: [0x",
+                      toHex(packed[0]),
+                      "] [0x",
+                      toHex(packed[1]),
+                      "] [0x",
+                      toHex(packed[2]),
+                      "]"
                     echo "---"
 
   echo "Tested ", total, " combinations"

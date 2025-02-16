@@ -1,4 +1,4 @@
-proc initializeMetaStats() =  # Make map parameter mutable
+proc initializeMetaStats() = # Make map parameter mutable
   metaStats["Hand Balance"] = MetaStat(weight: -Inf)
 
 proc findStatScore(statName: string, statType: char, lt: Layout): float =
@@ -16,16 +16,16 @@ proc findStatScore(statName: string, statType: char, lt: Layout): float =
   of 'q':
     if statName in lt.quadScore:
       return lt.quadScore[statName]
-  of '1'..'9':
+  of '1' .. '9':
     if statName in lt.skipScore:
       let skipIndex = ord(statType) - ord('1')
       return lt.skipScore[statName][skipIndex]
   else:
     raise newException(ValueError, "Invalid type specified in findStatScore")
 
-  return NaN  # Stat not found
+  return NaN # Stat not found
 
-proc metaAnalysis(lt: var Layout, map: var FingerMap) =  # Make map parameter mutable
+proc metaAnalysis(lt: var Layout, map: var FingerMap) = # Make map parameter mutable
   ## Performs the meta-analysis using the FingerMap and current layout.
   ## Calculates hand balance as the absolute difference between
   ## left and right hand usage.
