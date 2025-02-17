@@ -41,18 +41,28 @@ proc initDefaultFingerMap(): FingerMap =
   result.adjacentPairs.incl((LP, LR))
   result.adjacentPairs.incl((LR, LM))
   result.adjacentPairs.incl((LM, LI))
+  result.adjacentPairs.incl((LI, RI))
   result.adjacentPairs.incl((RI, RM))
   result.adjacentPairs.incl((RM, RR))
   result.adjacentPairs.incl((RR, RP))
 
-  # Default stretches - only top row
   # Left hand stretches
   result.stretches.incl((0'u8, 0'u8)) # Top row leftmost pinky
+  result.stretches.incl((1'u8, 0'u8)) # Middle row leftmost pinky
+  result.stretches.incl((2'u8, 0'u8)) # Bottom row leftmost pinky
+
   result.stretches.incl((0'u8, 5'u8)) # Top row inner left (index)
+  result.stretches.incl((1'u8, 5'u8)) # Middle row inner left (index)
+  result.stretches.incl((2'u8, 5'u8)) # Bottom row inner left (index)
 
   # Right hand stretches
   result.stretches.incl((0'u8, 6'u8)) # Top row inner right (index)
+  result.stretches.incl((1'u8, 6'u8)) # Middle row inner right (index)
+  result.stretches.incl((2'u8, 6'u8)) # Bottom row inner right (index)
+
   result.stretches.incl((0'u8, 11'u8)) # Top row rightmost pinky
+  result.stretches.incl((1'u8, 11'u8)) # Middle row rightmost pinky
+  result.stretches.incl((2'u8, 11'u8)) # Bottom row rightmost pinky
 
 proc getHand(f: Option[Finger]): Option[Hand] =
   if f.isNone:
@@ -69,11 +79,11 @@ proc isSameHand(f1, f2: Option[Finger]): bool =
     return false
   getHand(f1).get == getHand(f2).get
 
-proc getFinger(map: FingerMap, row, col: uint8): Option[Finger] =
-  if row < 0 or row >= Row or col < 0 or col >= Col:
+proc getFinger(map: FingerMap, row0, col0: uint8): Option[Finger] =
+  if row0 < 0 or row0 >= Row or col0 < 0 or col0 >= Col:
     none(Finger)
   else:
-    map.assignments[row][col]
+    map.assignments[row0][col0]
 
 proc isAdjacent(map: FingerMap, f1, f2: Option[Finger]): bool =
   if f1.isNone or f2.isNone:
@@ -81,12 +91,12 @@ proc isAdjacent(map: FingerMap, f1, f2: Option[Finger]): bool =
 
   (f1.get, f2.get) in map.adjacentPairs or (f2.get, f1.get) in map.adjacentPairs
 
-proc isStretch(map: FingerMap, row, col: uint8): bool =
-  let f = getFinger(map, row, col)
+proc isStretch(map: FingerMap, row0, col0: uint8): bool =
+  let f = getFinger(map, row0, col0)
   if f.isNone: # If no finger assigned, not a stretch
     return false
 
-  return (row, col) in map.stretches
+  return (row0, col0) in map.stretches
 
 proc validateFingerMap(map: FingerMap): bool =
   # Check matrix dimensions

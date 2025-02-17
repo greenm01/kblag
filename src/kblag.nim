@@ -16,7 +16,7 @@ proc main() =
   var corpus = "monkey0-7_IanDouglas"
   var layout = "hiyou"
   var config = "config"
-  var weights = "benchmark"
+  var weights = "default"
 
   info "Reading language file"
   readLang(lang)
@@ -26,8 +26,6 @@ proc main() =
 
   # Initialize the stats with the fingerMap
   initializeStats(fingerMap)
-
-  #echo "foo ", validateFingerMap(fingerMap)
 
   info("Reading corpus")
   readCorpus(lang, corpus)
@@ -45,6 +43,7 @@ proc main() =
   analyzeLayout(layout, fingerMap)
 
   #echoFingerMap(fingerMap)
+  #logCharTable()
 
 when isMainModule:
   main()

@@ -41,7 +41,7 @@ proc isAdjacentFingerQuad(
   not isStretch(map, row0, col0) and not isStretch(map, row1, col1) and
     not isStretch(map, row2, col2) and not isStretch(map, row3, col3) and
     isAdjacent(map, f1, f2) and isAdjacent(map, f2, f3) and isAdjacent(map, f3, f4) and
-    f1 != f2 and f2 != f3 and f3 != f4
+    f1 != f2 and f2 != f3 and f1 != f3
 
 proc isSameFingerQuad(
     map: FingerMap, row0, col0, row1, col1, row2, col2, row3, col3: uint8

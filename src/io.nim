@@ -8,8 +8,8 @@ type LayoutConfig = object
 
 type LangError = object of CatchableError
 
-proc convertChar(c: char): int =
-  let value = charTable.getOrDefault(Rune(c), 0)
+proc convertChar(c: Rune): int =
+  let value = charTable.getOrDefault(c, 0)
   if value == 0: -1 else: value
 
 proc isValid(idx: int): bool =
@@ -76,49 +76,66 @@ proc readLang(langName: string) =
     else:
       charTable[rune] = i div 2
 
-  langLength = (charTable.len - 1) div 2
+  langLength = (langArr.len - 1) div 2
+  #echo langLength
 
   mul1 = langLength
   mul2 = langLength * langLength
-  mul3 = langLength * langLength * langLength
+  mul3 = mul2 * langLength
 
 proc getCharCode(c: Rune): int =
   ## Gets the position code for a character in the language.
   ## Returns -1 if the character is not in the language.
   charTable.getOrDefault(c, -1)
 
-proc readLayoutConfig(layoutName: string): LayoutConfig =
-  ## Reads a keyboard layout from a .glg file and returns just the raw configuration
-  result.name = layoutName
+proc readLayout(layoutName: string): Layout =
+  result = Layout()
 
   let path = "./data/" & "/layouts/" & layoutName & ".glg"
 
+  var layoutFile: File
   try:
-    let file = open(path)
-    defer:
-      file.close()
-
-    var row: int = 0
-    for line in file.lines:
-      if row >= Row.int:
-        break
-
-      var col: int = 0
-      for c in strutils.splitWhitespace(line):
-        if col >= Col.int:
-          break
-
-        # Convert @ to -1, otherwise convert to character code
-        if c == "@":
-          result.matrix[row][col] = -1
-        else:
-          result.matrix[row][col] = convertChar(c[0]).int
-
-        inc col
-      inc row
+    layoutFile = open(path)
   except IOError:
-    raise
-      newException(IOError, "Layout file not found. Failed to open or read: " & path)
+    raise newException(IOError, "Layout file not found: " & path)
+
+  defer: close(layoutFile)
+
+  result.name = layoutName
+
+  for i in 0 ..< Row.int:
+    for j in 0 ..< Col.int:
+      var curr: Rune
+      try:
+        while true:
+          let c = layoutFile.readChar()
+          if not c.isSpaceAscii:
+            curr = Rune(c)
+            break
+        result.matrix[i][j] = convertChar(curr)
+      except IOError, EOFError:
+        raise newException(IOError, "layout not 3x12 (fill dead-keys with @'s)")
+
+  # Initialize score tables
+  result.monoScore = initTable[string, float]()
+  result.biScore = initTable[string, float]()
+  result.triScore = initTable[string, float]()
+  result.quadScore = initTable[string, float]()
+  result.skipScore = initTable[string, array[SkipLength, float]]()
+
+  # Initialize scores
+  for name in monoStats.keys:
+    result.monoScore[name] = 0.0
+  for name in biStats.keys:
+    result.biScore[name] = 0.0
+  for name in triStats.keys:
+    result.triScore[name] = 0.0
+  for name in quadStats.keys:
+    result.quadScore[name] = 0.0
+
+  var zeroArray: array[SkipLength, float]
+  for name in skipStats.keys:
+    result.skipScore[name] = zeroArray
 
 proc readFingerMap(path: string): FingerMap =
   # Start with default stretches and adjacent pairs
@@ -173,79 +190,6 @@ proc readFingerMap(path: string): FingerMap =
               "]",
           )
 
-proc readLayout(layoutName: string): Layout =
-  ## Reads a keyboard layout from a .glg file and returns the layout configuration
-
-  result.name = layoutName
-
-  let path = "./data/" & "/layouts/" & layoutName & ".glg"
-
-  try:
-    let file = open(path)
-    defer:
-      file.close()
-
-    var row = 0
-    for line in file.lines:
-      if row >= Row.int:
-        break
-
-      var col = 0
-      for c in strutils.splitWhitespace(line):
-        if col >= Col.int:
-          break
-
-        # Convert @ to -1, otherwise convert to character code
-        if c == "@":
-          result.matrix[row][col] = -1
-        else:
-          result.matrix[row][col] = convertChar(c[0]).int
-
-        inc col
-      inc row
-  except IOError:
-    raise
-      newException(IOError, "Layout file not found. Failed to open or read: " & path)
-
-  # Initialize score tables
-  result.monoScore = initTable[string, float]()
-  result.biScore = initTable[string, float]()
-  result.triScore = initTable[string, float]()
-  result.quadScore = initTable[string, float]()
-  result.skipScore = initTable[string, array[SkipLength, float]]()
-
-  # Initialize scores
-  for name in monoStats.keys:
-    result.monoScore[name] = 0.0
-  for name in biStats.keys:
-    result.biScore[name] = 0.0
-  for name in triStats.keys:
-    result.triScore[name] = 0.0
-  for name in quadStats.keys:
-    result.quadScore[name] = 0.0
-
-  var zeroArray: array[SkipLength, float]
-  for name in skipStats.keys:
-    result.skipScore[name] = zeroArray
-
-proc cleanAscii(filename: string): string =
-  try:
-    var file = open(filename)
-    defer:
-      file.close()
-    result = ""
-    var runes = file.readAll().toRunes
-    for c in runes:
-      if c.int >= 32 and c.int <= 126: # ASCII printable range
-        result.add(c.toUTF8)
-      elif c.int != 10 and c.int != 13 and c.int != 9: # Skip newline, CR, and tab
-        echo "Unicode value: ", c.int, " Character: ", $c
-          # Directly show the character with $c
-  except IOError:
-    raise newException(
-      IOError, "Corpus file not found, make sure the file ends in .txt. Failed to open"
-    )
-
 proc rotateRight(mem: var openArray[int]) =
   ## Shifts all elements in the array one position to the right, discarding the last element.
   for i in countdown(mem.len - 1, 1):
@@ -254,30 +198,25 @@ proc rotateRight(mem: var openArray[int]) =
 
 proc readCorpus(langName, corpusName: string) =
   let path = "./data/" & langName & "/" & "/corpora/" & corpusName & ".txt"
-  let cleanedText = cleanAscii(path)
   var mem = @[-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
-
   initCorpusArrays()
 
-  for c in cleanedText:
-    mem[0] = convertChar(c)
+  var file = open(path)
+  defer: file.close()
 
+  for rune in file.readAll().toRunes:
+    mem[0] = convertChar(rune)
     if mem[0] > 0:
       inc corpusMono[mem[0]]
-
       if mem[1] > 0:
         inc corpusBi[mem[1]][mem[0]]
-
         if mem[2] > 0:
           inc corpusTri[mem[2]][mem[1]][mem[0]]
-
           if mem[3] > 0:
             inc corpusQuad[mem[3]][mem[2]][mem[1]][mem[0]]
-
       for i in 2 .. 10:
         if mem[i] > 0:
           inc corpusSkip[i - 2][mem[i]][mem[0]]
-
     mem.rotateRight()
 
 proc updateStats[T](

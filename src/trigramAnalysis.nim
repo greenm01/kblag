@@ -6,17 +6,17 @@ proc isSameHandTri(map: FingerMap, row0, col0, row1, col1, row2, col2: uint8): b
     f3 = getFinger(map, row2, col2)
   isSameHand(f1, f2) and isSameHand(f2, f3)
 
-proc isSameColTri(row0, col0, row1, col1, row2, col2: int): bool =
+proc isSameColTri(row0, col0, row1, col1, row2, col2: uint8): bool =
   col0 == col1 and col1 == col2
 
-proc isSameRowTri(row0, col0, row1, col1, row2, col2: int): bool =
+proc isSameRowTri(row0, col0, row1, col1, row2, col2: uint8): bool =
   row0 == row1 and row1 == row2
 
 proc isSameRowModTri(map: FingerMap, row0, col0, row1, col1, row2, col2: uint8): bool =
   row0 == row1 and row1 == row2 and not isStretch(map, row0, col0) and
     not isStretch(map, row1, col1) and not isStretch(map, row2, col2)
 
-proc isSamePosTri(row0, col0, row1, col1, row2, col2: int): bool =
+proc isSamePosTri(row0, col0, row1, col1, row2, col2: uint8): bool =
   isSameColTri(row0, col0, row1, col1, row2, col2) and
     isSameRowTri(row0, col0, row1, col1, row2, col2)
 
@@ -33,7 +33,7 @@ proc isAdjacentFingerTri(
 
   not isStretch(map, row0, col0) and not isStretch(map, row1, col1) and
     not isStretch(map, row2, col2) and isAdjacent(map, f1, f2) and
-    isAdjacent(map, f2, f3) and f1 != f2 and f2 != f3 and f1 != f3
+    isAdjacent(map, f2, f3) and f1 != f2
 
 proc isSameFingerTri(map: FingerMap, row0, col0, row1, col1, row2, col2: uint8): bool =
   let
@@ -42,7 +42,7 @@ proc isSameFingerTri(map: FingerMap, row0, col0, row1, col1, row2, col2: uint8):
     f3 = getFinger(map, row2, col2)
 
   f1 == f2 and f2 == f3 and f1.isSome and not isSamePosBi(row0, col0, row1, col1) and
-    not isSamePosBi(row1, col1, row2, col2)
+  not isSamePosBi(row1, col1, row2, col2)
 
 proc isRedirect(map: FingerMap, row0, col0, row1, col1, row2, col2: uint8): bool =
   let
